@@ -4408,7 +4408,7 @@ sub almost_prime_count_approx {
 
 sub nth_twin_prime {
   my($n) = @_;
-  return undef if $n < 0;  ## no critic qw(ProhibitExplicitReturnUndef)
+  validate_integer_nonneg($n);
   return (undef,3,5,11,17,29,41)[$n] if $n <= 6;
 
   my $p = Math::Prime::Util::nth_twin_prime_approx($n+200);
@@ -4424,7 +4424,7 @@ sub nth_twin_prime {
 sub nth_twin_prime_approx {
   my($n) = @_;
   validate_integer_nonneg($n);
-  return nth_twin_prime($n) if $n < 6;
+  return (undef,3,5,11,17,29,41)[$n] if $n <= 6;
   $n = _upgrade_to_float($n) if ref($n) || $n > 127e14;   # TODO lower for 32-bit
   my $logn = log($n);
   my $nlogn2 = $n * $logn * $logn;
@@ -5186,9 +5186,10 @@ sub powint {
   my($a, $b) = @_;
   validate_integer($a);
   validate_integer($b);
+  croak "powint: exponent must be >= 0" if $b < 0;
+
   return maybetobigint(Math::Prime::Util::GMP::powint($a,$b))
     if $Math::Prime::Util::_GMPfunc{"powint"};
-  croak "powint: exponent must be >= 0" if $b < 0;
 
   # Special cases for small a and b
   if ($a >= -1 && $a <= 4) {
@@ -5983,9 +5984,7 @@ sub is_happy {
 
   if (!defined $base && !defined $k) {   # default base 10 exponent 2
     while ($n > 1 && $n != 4) {
-      my $sum = 0;
-      $sum += $_*$_ for (split(//,$n));
-      $n = $sum;
+      $n = Mvecsum( map { $_*$_ } split(//,$n) );
       $h++;
     }
     return ($n == 1) ? $h : 0;
@@ -6007,20 +6006,18 @@ sub is_happy {
   my %seen;
   while ($n > 1 && !exists $seen{$n}) {
     $seen{$n} = undef;
+    my @d;
     if ($base == 10) {
-      my $sum = 0;
-      $sum += $_ ** $k for (split(//,$n));
-      $n = $sum;
+      @d = map { Mpowint($_,$k) } split(//,$n);
     } else {
-      my @d;
       while ($n >= 1) {
         my $rem = $n % $base;
         push @d, ($k <= 6) ? int($rem ** $k) : Mpowint($rem,$k);
         #push @d, Mpowint($rem,$k);
-        $n = ($n-$rem)/$base;    # Always an exact division
+        $n = Mdivint($n-$rem,$base);    # Always an exact division
       }
-      $n = Mvecsum(@d);
     }
+    $n = Mvecsum(@d);
     $h++;
   }
   return ($n == 1) ? $h : 0;

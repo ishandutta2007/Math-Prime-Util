@@ -427,11 +427,12 @@ sub entropy_bytes {
 *nth_lucky_lower = \&Math::Prime::Util::PP::nth_lucky_lower;
 *nth_lucky_upper = \&Math::Prime::Util::PP::nth_lucky_upper;
 
-*semiprime_count_approx = \&Math::Prime::Util::PP::semiprime_count_approx;
-*nth_semiprime_approx = \&Math::Prime::Util::PP::nth_semiprime_approx;
-*twin_prime_count_approx = \&Math::Prime::Util::PP::twin_prime_count_approx;
+*nth_twin_prime = \&Math::Prime::Util::PP::nth_twin_prime;
 *nth_twin_prime_approx = \&Math::Prime::Util::PP::nth_twin_prime_approx;
+*twin_prime_count_approx = \&Math::Prime::Util::PP::twin_prime_count_approx;
 *nth_semiprime = \&Math::Prime::Util::PP::nth_semiprime;
+*nth_semiprime_approx = \&Math::Prime::Util::PP::nth_semiprime_approx;
+*semiprime_count_approx = \&Math::Prime::Util::PP::semiprime_count_approx;
 
 *almost_prime_count_approx = \&Math::Prime::Util::PP::almost_prime_count_approx;
 *almost_prime_count_lower  = \&Math::Prime::Util::PP::almost_prime_count_lower;
@@ -470,11 +471,6 @@ sub entropy_bytes {
 
 # We are doing the validation here so the PP code doesn't have to do it.
 
-sub nth_twin_prime {
-  my($n) = @_;
-  _validate_integer_nonneg($n);
-  return Math::Prime::Util::PP::nth_twin_prime($n);
-}
 sub nth_almost_prime {
   my($k,$n) = @_;
   _validate_integer_nonneg($k);
