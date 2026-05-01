@@ -12248,8 +12248,8 @@ sub permtonum {
   {
     my %S;
     for my $v (@$A) {
-      croak "permtonum: invalid permutation array"
-        if !defined $v || $v < 0 || $v >= $n || $S{$v}++;
+      validate_integer_nonneg($v);
+      croak "permtonum: invalid permutation array" if $v >= $n || $S{$v}++;
     }
   }
   my $f = factorial($n-1);
@@ -12438,8 +12438,8 @@ sub vecsingleton {
 sub vecwindow (&$$@) {    ## no critic qw(ProhibitSubroutinePrototypes)
   my($sub, $step, $size) = (shift, shift, shift);
   croak 'Not a subroutine reference' unless (ref($sub) || '') eq 'CODE';
-  croak 'vecwindow: step must be a positive integer' unless $step >= 1;
-  croak 'vecwindow: size must be a positive integer' unless $size >= 1;
+  validate_integer_positive($step);
+  validate_integer_positive($size);
   my @result;
   for (my $i = 0; $i + $size <= @_; $i += $step) {
     push @result, $sub->(@_[$i .. $i+$size-1]);
@@ -12956,6 +12956,7 @@ sub foralmostprimes {
 # PPFE:  irand irand64 drand random_bytes csrand srand _is_csprng_well_seeded
 sub urandomb {
   my($n) = @_;
+  validate_integer_nonneg($n);
   return 0 if $n <= 0;
   return ( Math::Prime::Util::irand() >> (32-$n) ) if $n <= 32;
   return ( Math::Prime::Util::irand64() >> (64-$n) ) if MPU_MAXBITS >= 64 && $n <= 64;
