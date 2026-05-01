@@ -151,16 +151,27 @@ sub entropy_bytes {
 *sum_primes = \&Math::Prime::Util::PP::sum_primes;
 *print_primes = \&Math::Prime::Util::PP::print_primes;
 
-*is_prime          = \&Math::Prime::Util::PP::is_prime;
-*is_prob_prime     = \&Math::Prime::Util::PP::is_prob_prime;
-*is_provable_prime = \&Math::Prime::Util::PP::is_provable_prime;
-*is_bpsw_prime     = \&Math::Prime::Util::PP::is_bpsw_prime;
-*is_pseudoprime    = \&Math::Prime::Util::PP::is_pseudoprime;
+*is_prime           = \&Math::Prime::Util::PP::is_prime;
+*is_prob_prime      = \&Math::Prime::Util::PP::is_prob_prime;
+*is_provable_prime  = \&Math::Prime::Util::PP::is_provable_prime;
+*is_bpsw_prime      = \&Math::Prime::Util::PP::is_bpsw_prime;
+*is_aks_prime       = \&Math::Prime::Util::PP::is_aks_prime;
+*is_mersenne_prime  = \&Math::Prime::Util::PP::is_mersenne_prime;
+*is_ramanujan_prime = \&Math::Prime::Util::PP::is_ramanujan_prime;
+
+*is_pseudoprime = \&Math::Prime::Util::PP::is_pseudoprime;
 *is_euler_pseudoprime = \&Math::Prime::Util::PP::is_euler_pseudoprime;
 *is_strong_pseudoprime = \&Math::Prime::Util::PP::is_strong_pseudoprime;
 *is_euler_plumb_pseudoprime = \&Math::Prime::Util::PP::is_euler_plumb_pseudoprime;
 *is_perrin_pseudoprime = \&Math::Prime::Util::PP::is_perrin_pseudoprime;
 *is_frobenius_pseudoprime = \&Math::Prime::Util::PP::is_frobenius_pseudoprime;
+*is_catalan_pseudoprime = \&Math::Prime::Util::PP::is_catalan_pseudoprime;
+*is_frobenius_underwood_pseudoprime = \&Math::Prime::Util::PP::is_frobenius_underwood_pseudoprime;
+*is_frobenius_khashin_pseudoprime = \&Math::Prime::Util::PP::is_frobenius_khashin_pseudoprime;
+*is_lucas_pseudoprime = \&Math::Prime::Util::PP::is_lucas_pseudoprime;
+*is_strong_lucas_pseudoprime = \&Math::Prime::Util::PP::is_strong_lucas_pseudoprime;
+*is_extra_strong_lucas_pseudoprime = \&Math::Prime::Util::PP::is_extra_strong_lucas_pseudoprime;
+*is_almost_extra_strong_lucas_pseudoprime = \&Math::Prime::Util::PP::is_almost_extra_strong_lucas_pseudoprime;
 
 *is_cyclic = \&Math::Prime::Util::PP::is_cyclic;
 *is_carmichael = \&Math::Prime::Util::PP::is_carmichael;
@@ -476,72 +487,6 @@ sub entropy_bytes {
 
 
 # We are doing the validation here so the PP code doesn't have to do it.
-
-
-sub is_lucas_pseudoprime {
-  my($n) = @_;
-  _validate_integer($n);
-  return 0 if $n < 0;
-  return Math::Prime::Util::PP::is_lucas_pseudoprime($n);
-}
-sub is_strong_lucas_pseudoprime {
-  my($n) = @_;
-  _validate_integer($n);
-  return 0 if $n < 0;
-  return Math::Prime::Util::PP::is_strong_lucas_pseudoprime($n);
-}
-sub is_extra_strong_lucas_pseudoprime {
-  my($n) = @_;
-  _validate_integer($n);
-  return 0 if $n < 0;
-  return Math::Prime::Util::PP::is_extra_strong_lucas_pseudoprime($n);
-}
-sub is_almost_extra_strong_lucas_pseudoprime {
-  my($n, $increment) = @_;
-  _validate_integer($n);
-  return 0 if $n < 0;
-  if (defined $increment) { _validate_integer_nonneg($increment); }
-  else                    { $increment = 1; }
-  croak "is_almost_extra_strong_lucas_pseudoprime: invalid increment: $increment"
-    if $increment < 1 || $increment > 256;
-  return Math::Prime::Util::PP::is_almost_extra_strong_lucas_pseudoprime($n, $increment);
-}
-sub is_catalan_pseudoprime {
-  my($n) = @_;
-  _validate_integer($n);
-  return 0 if $n < 0;
-  return Math::Prime::Util::PP::is_catalan_pseudoprime($n);
-}
-sub is_frobenius_underwood_pseudoprime {
-  my($n) = @_;
-  _validate_integer($n);
-  return 0 if $n < 0;
-  return Math::Prime::Util::PP::is_frobenius_underwood_pseudoprime($n);
-}
-sub is_frobenius_khashin_pseudoprime {
-  my($n) = @_;
-  _validate_integer($n);
-  return 0 if $n < 0;
-  return Math::Prime::Util::PP::is_frobenius_khashin_pseudoprime($n);
-}
-sub is_aks_prime {
-  my($n) = @_;
-  _validate_integer($n);
-  return 0 if $n < 0;
-  return Math::Prime::Util::PP::is_aks_prime($n);
-}
-sub is_ramanujan_prime {
-  my($n) = @_;
-  _validate_integer($n);
-  return 0 if $n < 0;
-  return Math::Prime::Util::PP::is_ramanujan_prime($n);
-}
-sub is_mersenne_prime {
-  my($p) = @_;
-  _validate_integer($p);
-  return 0 if $p < 0;
-  return Math::Prime::Util::PP::is_mersenne_prime($p);
-}
 
 sub gcd {
   my(@v) = @_;

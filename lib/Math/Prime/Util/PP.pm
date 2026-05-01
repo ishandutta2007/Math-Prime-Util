@@ -1083,8 +1083,8 @@ sub ramanujan_primes {
 
 sub is_ramanujan_prime {
   my($n) = @_;
-  return 1 if $n == 2;
-  return 0 if $n < 11;
+  validate_integer($n);
+  return 0+($n==2) if $n < 11;
   my $L = Math::Prime::Util::ramanujan_primes($n,$n);
   return (scalar(@$L) > 0) ? 1 : 0;
 }
@@ -8008,6 +8008,7 @@ sub is_pseudoprime {
   return 0+($n >= 2) if $n < 3;
 
   foreach my $a (@bases) {
+    validate_integer_nonneg($a);
     croak "is_pseudoprime: invalid base: $a" if $a < 2;
     $a = $a % $n if $a >= $n;
     return 0 unless $a == 1 || Mpowmod($a, $n-1, $n) == 1;
@@ -8024,6 +8025,7 @@ sub is_euler_pseudoprime {
   return 0 if ($n % 2) == 0;
 
   foreach my $a (@bases) {
+    validate_integer_nonneg($a);
     croak "is_euler_pseudoprime: invalid base: $a" if $a < 2;
     $a = $a % $n if $a >= $n;
     my $j = Mkronecker($a, $n);
@@ -8113,6 +8115,7 @@ sub is_strong_pseudoprime {
 
   my @newbases;
   for my $a (@bases) {
+    validate_integer_nonneg($a);
     croak "is_strong_pseudoprime: invalid base: $a" if $a < 2;
     $a %= $n if $a >= $n;
     next if $a <= 1 || $a == $n-1;
@@ -8191,7 +8194,7 @@ sub kronecker {
   if ($b % 2 == 0) {
     return 0 if $a % 2 == 0;
     my $v = 0;
-    do { $v++; $b /= 2; } while $b % 2 == 0;
+    do { $b = Mrshiftint($b); $v++; } while $b % 2 == 0;
     $k = -$k if $v % 2 == 1 && ($a % 8 == 3 || $a % 8 == 5);
   }
   if ($b < 0) {
@@ -8205,13 +8208,13 @@ sub kronecker {
   while ($a != 0) {
     if ($a % 2 == 0) {
       my $v = 0;
-      do { $v++; $a /= 2; } while $a % 2 == 0;
+      do { $a = Mrshiftint($a); $v++; } while $a % 2 == 0;
       $k = -$k if $v % 2 == 1 && ($b % 8 == 3 || $b % 8 == 5);
     }
     $k = -$k if $a % 4 == 3 && $b % 4 == 3;
     ($a, $b) = ($b % $a, $a);
     # If a,b are bigints and now small enough, finish as native.
-    return $k * kronecker(_bigint_to_int($a),_bigint_to_int($b))
+    return $k * Mkronecker(_bigint_to_int($a),_bigint_to_int($b))
       if $a <= INTMAX && $b <= INTMAX && ref($a) && ref($b);
   }
   return ($b == 1) ? $k : 0;
@@ -9588,6 +9591,7 @@ sub pisano_period {
 
 sub is_lucas_pseudoprime {
   my($n) = @_;
+  validate_integer($n);
 
   return 0+($n >= 2) if $n < 4;
   return 0 if ($n % 2) == 0 || _is_perfect_square($n);
@@ -9602,6 +9606,7 @@ sub is_lucas_pseudoprime {
 
 sub is_strong_lucas_pseudoprime {
   my($n) = @_;
+  validate_integer($n);
 
   return 0+($n >= 2) if $n < 4;
   return 0 if ($n % 2) == 0 || _is_perfect_square($n);
@@ -9632,6 +9637,7 @@ sub is_strong_lucas_pseudoprime {
 
 sub is_extra_strong_lucas_pseudoprime {
   my($n) = @_;
+  validate_integer($n);
 
   return 0+($n >= 2) if $n < 4;
   return 0 if ($n % 2) == 0 || _is_perfect_square($n);
@@ -9658,8 +9664,9 @@ sub is_extra_strong_lucas_pseudoprime {
 
 sub is_almost_extra_strong_lucas_pseudoprime {
   my($n, $incr) = @_;
+  validate_integer($n);
   if (defined $incr) {
-    validate_integer($incr);
+    validate_integer_nonneg($incr);
     croak "is_almost_extra_strong_lucas_pseudoprime: invalid increment: $incr" if $incr<1 || $incr>256;
   } else {
     $incr = 1;
@@ -9699,6 +9706,7 @@ sub is_almost_extra_strong_lucas_pseudoprime {
 
 sub is_frobenius_khashin_pseudoprime {
   my($n) = @_;
+  validate_integer($n);
   return 0+($n >= 2) if $n < 4;
   return 0 unless $n % 2;
   return 0 if _is_perfect_square($n);
@@ -9734,6 +9742,7 @@ sub is_frobenius_khashin_pseudoprime {
 
 sub is_frobenius_underwood_pseudoprime {
   my($n) = @_;
+  validate_integer($n);
   return 0+($n >= 2) if $n < 4;
   return 0 unless $n % 2;
 
@@ -9849,11 +9858,12 @@ sub _catgamma {
 }
 sub _catvtest {
   my($n,$p) = @_;
-  while ($n = int($n/$p)) { return 1 if $n % 2; }
+  while ($n = Mdivint($n,$p)) { return 1 if $n % 2; }
   0;
 }
 sub is_catalan_pseudoprime {
   my($n) = @_;
+  validate_integer($n);
   return 0+($n >= 2) if $n < 4;
   return 0 unless $n & 1;
 
@@ -9940,10 +9950,12 @@ undef @_mersenne_primes{2,3,5,7,13,17,19,31,61,89,107,127,521,607,1279,2203,2281
 
 sub is_mersenne_prime {
   my($p) = @_;
+  validate_integer($p);
+  return 0 if $p < 0;
 
   # Use the known Mersenne primes
   return 1 if exists $_mersenne_primes{$p};
-  return 0 if $p < 79711549; # GIMPS has tested and verified all below
+  return 0 if $p < 80253427; # GIMPS has tested and verified all below
   # Past this we do a generic Mersenne prime test
 
   return 1 if $p == 2;
