@@ -6240,8 +6240,8 @@ sub _find_ts_generator {
 
   my($e,$r) = (0, $p-1);
   while (!($r % $k)) {
+    $r = Mdivint($r,$k);
     $e++;
-    $r /= $k;
   }
   my $ke1 = Mpowint($k, $e-1);
   my($x,$m,$y) = (2,1);
@@ -6259,8 +6259,8 @@ sub _ts_rootmod {
 
   my($e,$r) = (0, $p-1);
   while (!($r % $k)) {
+    $r = Mdivint($r,$k);
     $e++;
-    $r /= $k;
   }
   # p-1 = r * k^e
   my $x = Mpowmod($a, Minvmod($k % $r, $r), $p);
@@ -6393,8 +6393,8 @@ sub _ts_prime {
 
   my($e,$r) = (0, $p-1);
   while (!($r % $k)) {
+    $r = Mdivint($r,$k);
     $e++;
-    $r /= $k;
   }
   my $ke = Mdivint($p-1, $r);
 
@@ -7249,7 +7249,7 @@ sub is_polygonal {
     $R = Mmulint(2, $k) - 4;
   }
   return 0 if ($D % $R) != 0;
-  $$refp = $D / $R if defined $refp;
+  $$refp = Mdivint($D,$R) if defined $refp;
   1;
 }
 
@@ -7451,9 +7451,10 @@ sub valuation {
     }
     return length($s) - rindex($s,'1') - 1;
   }
-  while ( !($n % $k) ) {
-    $n /= $k;
-    $v++;
+  if ($n <= 562949953421312) {  # 2^49 safe arithmetic
+    while (!($n % $k)) { $n /= $k; $v++; }
+  } else {
+    while (!($n % $k)) { $n = Mdivint($n,$k); $v++; }
   }
   $v;
 }
@@ -7478,7 +7479,7 @@ sub _splitdigits {
     while ($n >= 1) {
       my $rem = $n % $base;
       unshift @d, $rem;
-      $n = ($n-$rem)/$base;    # Always an exact division
+      $n = Mdivint($n-$rem,$base);    # Always an exact division
     }
   }
   if (defined $len && $len >= 0 && $len != scalar(@d)) {
