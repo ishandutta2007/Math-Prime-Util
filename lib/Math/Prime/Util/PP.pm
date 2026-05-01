@@ -10837,7 +10837,7 @@ sub cheb_factor {
 sub _factor_holf {
   my($n, $rounds, $startrounds) = @_;
   $rounds = 64*1024*1024 unless defined $rounds;
-  $startrounds = 1 if (!defined $startrounds) || ($startrounds < 1);
+  $startrounds = 1 if !defined $startrounds || $startrounds < 1;
 
   if (ref($n)) {
     for my $i ($startrounds .. $rounds) {
@@ -10876,6 +10876,7 @@ sub holf_factor {
   my($n, $rounds, $startrounds) = @_;
   validate_integer_nonneg($n);
   validate_integer_nonneg($rounds) if defined $rounds;
+  validate_integer_nonneg($startrounds) if defined $startrounds;
   my @f = _basic_factor($n);
   return @f if $n < 4;
   return (@f, $n) if _is_prime7($n);
@@ -11111,6 +11112,11 @@ sub ecm_factor {
   my @f = _basic_factor($n);
   return @f if $n < 4;
   return (@f, $n) if _is_prime7($n);
+
+  validate_integer_nonneg($B1) if defined $B1;
+  validate_integer_nonneg($B2) if defined $B2;
+  validate_integer_nonneg($ncurves) if defined $ncurves;
+
   if ($Math::Prime::Util::_GMPfunc{"ecm_factor"}) {
     $B1 = 0 if !defined $B1;
     $ncurves = 0 if !defined $ncurves;
@@ -11785,6 +11791,7 @@ my $_Pi = "3.141592653589793238462643383279503";
 sub Pi {
   my($digits) = @_;
   return 0.0+$_Pi unless $digits;
+  validate_integer_nonneg($digits);
   return 0.0+sprintf("%.*lf", $digits-1, $_Pi) if $digits < 15;
   return _upgrade_to_float($_Pi, $digits) if $digits < 30;
 

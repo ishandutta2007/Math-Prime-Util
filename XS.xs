@@ -3653,7 +3653,7 @@ void next_farey(IN SV* svn, IN SV* svfrac)
 
 
 
-void Pi(IN UV digits = 0)
+void Pi(IN SV* svdigits = 0)
   PREINIT:
 #ifdef USE_QUADMATH
     const UV mantsize = FLT128_DIG;
@@ -3665,17 +3665,24 @@ void Pi(IN UV digits = 0)
     const UV mantsize = DBL_DIG;
     const NV pival = 3.141592653589793238462643383279502884197169;
 #endif
+    UV digits;
+    int status;
   PPCODE:
-    if (digits == 0) {
+    status = 1;
+    digits = 0;
+    if (items > 0)
+      status = _validate_and_set(&digits, aTHX_ svdigits, IFLAG_NONNEG);
+    if (status != 1 || digits > mantsize) {
+      DISPATCHPP();
+      XSRETURN(1);
+    }
+    if (digits == 0)
       XSRETURN_NV( pival );
-    } else if (digits <= mantsize) {
+    else {
       char* out = pidigits(digits);
       NV pi = STRTONV(out);
       Safefree(out);
       XSRETURN_NV( pi );
-    } else {
-      DISPATCHPP();
-      XSRETURN(1);
     }
 
 void bernfrac(IN SV* svn)
