@@ -4687,6 +4687,8 @@ sub _fast_small_nth_almost_prime {
 
 sub nth_almost_prime_upper {
   my($k, $n) = @_;
+  validate_integer_nonneg($k);
+  validate_integer_nonneg($n);
   return undef if $n == 0;
   return (($n == 1) ? 1 : 0) if $k == 0;
   return Mnth_prime_upper($n) if $k == 1;
@@ -4716,6 +4718,8 @@ sub nth_almost_prime_upper {
 }
 sub nth_almost_prime_lower {
   my($k, $n) = @_;
+  validate_integer_nonneg($k);
+  validate_integer_nonneg($n);
   return undef if $n == 0;
   return (($n == 1) ? 1 : 0) if $k == 0;
   return Math::Prime::Util::nth_prime_lower($n) if $k == 1;
@@ -4746,6 +4750,8 @@ sub nth_almost_prime_lower {
 
 sub nth_almost_prime_approx {
   my($k, $n) = @_;
+  validate_integer_nonneg($k);
+  validate_integer_nonneg($n);
   return undef if $n == 0;
   return Mlshiftint(1,$k) if $n == 1;
   return undef if $k == 0;  # n==1 already returned
@@ -4899,6 +4905,8 @@ sub _inverse_interpolate {
 
 sub nth_almost_prime {
   my($k, $n) = @_;
+  validate_integer_nonneg($k);
+  validate_integer_nonneg($n);
   return undef if $n == 0;
   return Mlshiftint(1,$k) if $n == 1;
   return undef if $k == 0;  # n==1 already returned
@@ -4924,6 +4932,8 @@ sub nth_almost_prime {
 
 sub nth_omega_prime {
   my($k, $n) = @_;
+  validate_integer_nonneg($k);
+  validate_integer_nonneg($n);
   return undef if $n == 0;
   return Mpn_primorial($k) if $n == 1;
   return undef if $k == 0;  # n==1 already returned
@@ -4993,8 +5003,8 @@ sub ramanujan_prime_count_lower {
   my($n) = @_;
   validate_integer_nonneg($n);
   return (($n < 2) ? 0 : 1) if $n < 11;
-  my $lo = int(prime_count_lower($n) / 3);
-  my $hi = prime_count_upper($n) >> 1;
+  my $lo = Mdivint(prime_count_lower($n),3);
+  my $hi = Mrshiftint(prime_count_upper($n));
   _binary_search($n, $lo, $hi,
                  sub{Math::Prime::Util::nth_ramanujan_prime_upper(shift)});
 }

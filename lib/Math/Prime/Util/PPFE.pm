@@ -434,9 +434,15 @@ sub entropy_bytes {
 *nth_semiprime_approx = \&Math::Prime::Util::PP::nth_semiprime_approx;
 *semiprime_count_approx = \&Math::Prime::Util::PP::semiprime_count_approx;
 
+*nth_almost_prime = \&Math::Prime::Util::PP::nth_almost_prime;
+*nth_almost_prime_approx = \&Math::Prime::Util::PP::nth_almost_prime_approx;
+*nth_almost_prime_lower = \&Math::Prime::Util::PP::nth_almost_prime_lower;
+*nth_almost_prime_upper = \&Math::Prime::Util::PP::nth_almost_prime_upper;
 *almost_prime_count_approx = \&Math::Prime::Util::PP::almost_prime_count_approx;
 *almost_prime_count_lower  = \&Math::Prime::Util::PP::almost_prime_count_lower;
 *almost_prime_count_upper  = \&Math::Prime::Util::PP::almost_prime_count_upper;
+
+*nth_omega_prime = \&Math::Prime::Util::PP::nth_omega_prime;
 
 *ramanujan_prime_count_approx= \&Math::Prime::Util::PP::ramanujan_prime_count_approx;
 *ramanujan_prime_count_lower = \&Math::Prime::Util::PP::ramanujan_prime_count_lower;
@@ -471,36 +477,6 @@ sub entropy_bytes {
 
 # We are doing the validation here so the PP code doesn't have to do it.
 
-sub nth_almost_prime {
-  my($k,$n) = @_;
-  _validate_integer_nonneg($k);
-  _validate_integer_nonneg($n);
-  return Math::Prime::Util::PP::nth_almost_prime($k,$n);
-}
-sub nth_almost_prime_approx {
-  my($k,$n) = @_;
-  _validate_integer_nonneg($k);
-  _validate_integer_nonneg($n);
-  return Math::Prime::Util::PP::nth_almost_prime_approx($k,$n);
-}
-sub nth_almost_prime_lower {
-  my($k,$n) = @_;
-  _validate_integer_nonneg($k);
-  _validate_integer_nonneg($n);
-  return Math::Prime::Util::PP::nth_almost_prime_lower($k,$n);
-}
-sub nth_almost_prime_upper {
-  my($k,$n) = @_;
-  _validate_integer_nonneg($k);
-  _validate_integer_nonneg($n);
-  return Math::Prime::Util::PP::nth_almost_prime_upper($k,$n);
-}
-sub nth_omega_prime {
-  my($k,$n) = @_;
-  _validate_integer_nonneg($k);
-  _validate_integer_nonneg($n);
-  return Math::Prime::Util::PP::nth_omega_prime($k,$n);
-}
 
 sub is_lucas_pseudoprime {
   my($n) = @_;
