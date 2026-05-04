@@ -71,6 +71,7 @@ subtest 'vecsample', sub {
   is_deeply([map {[vecsample($_)]} 0,1,1000], [[],[],[]], "vecsample(k) = ()");
   is_deeply([map {[vecsample($_,())]} 0,1,999],[[],[],[]], "vecsample(k,()) = ()");
   is_deeply([map {[vecsample($_,[])]} 0,1,999],[[],[],[]], "vecsample(k,[]) = ()");
+  ok(!eval { vecsample("2foo",1,2,3); }, "vecsample invalid k");
   is_deeply([map {[vecsample(1,($_))]} 0,1,999],[[0],[1],[999]], "vecsample(1,(n)) = (n)");
   is_deeply([map {[vecsample(1,[$_])]} 0,1,999],[[0],[1],[999]], "vecsample(1,(n)) = (n)");
   is(scalar @{[vecsample(2,[80..100])]}, 2, "returns k items with a large list");

@@ -25,7 +25,7 @@ plan tests => 1
             + 1  # urandomb bigint range
             + 3  # urandomm
             + 5  # urandomr
-            + 4  # entropy_bytes
+            + 7  # random_bytes / entropy_bytes
             + 0;
 
 ########
@@ -194,6 +194,9 @@ srand;
 #######
 
 is(random_bytes(0),'',"random_bytes(0) returns empty string");
+is(entropy_bytes(0),'',"entropy_bytes(0) returns empty string");
+ok(!eval { random_bytes("4foo"); }, "random_bytes rejects invalid input");
+ok(!eval { entropy_bytes("4foo"); }, "entropy_bytes rejects invalid input");
 is(urandomb(0),0,"urandomb(0) returns 0");
 is(urandomm(0),0,"urandomm(0) returns 0");
 is(urandomm(1),0,"urandomm(1) returns 0");

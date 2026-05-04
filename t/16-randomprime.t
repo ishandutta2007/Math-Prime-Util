@@ -11,6 +11,7 @@ use Math::Prime::Util qw/random_prime random_ndigit_prime random_nbit_prime
                          random_proven_prime
                          random_semiprime random_unrestricted_semiprime
                          random_safe_prime random_strong_prime
+                         miller_rabin_random
                          factor is_prime is_semiprime is_smooth logint
                          is_safe_prime
                          prime_set_config/;
@@ -70,6 +71,8 @@ subtest 'expected failures', sub {
   #ok(!eval { random_shawe_taylor_prime(undef); }, "random_shawe_taylor_prime(undef)");
   ok(!eval { random_shawe_taylor_prime(0); }, "random_shawe_taylor_prime(0)");
   #ok(!eval { random_shawe_taylor_prime(-5); }, "random_shawe_taylor_prime(-5)");
+
+  ok(!eval { miller_rabin_random(10007,0); }, "miller_rabin_random(10007,0)");
 };
 
 subtest 'random_prime(lo,hi)', sub {
