@@ -3217,53 +3217,56 @@ void next_chen_prime(IN SV* svn)
     XSRETURN(1);
 
 void urandomb(IN UV bits)
-  ALIAS:
-    random_ndigit_prime = 1
-    random_semiprime = 2
-    random_unrestricted_semiprime = 3
-    random_safe_prime = 4
-    random_nbit_prime = 5
-    random_shawe_taylor_prime = 6
-    random_maurer_prime = 7
-    random_proven_prime = 8
-    random_strong_prime = 9
-  PREINIT:
-    UV res, minarg;
-    dMY_CXT;
-    void* cs;
   PPCODE:
-    switch (ix) {
-      case 1:  minarg =   1; break;
-      case 2:  minarg =   4; break;
-      case 3:  minarg =   3; break;
-      case 4:  minarg =   3; break;
-      case 5:
-      case 6:
-      case 7:
-      case 8:  minarg =   2; break;
-      case 9:  minarg = 128; break;
-      default: minarg =   0; break;
-    }
-    if (minarg > 0 && bits < minarg)
-      croak("%s: input '%d' must be >= %d", SUBNAME, (int)bits, (int)minarg);
-    cs = MY_CXT.randcxt;
     if (bits <= BITS_PER_WORD) {
-      switch (ix) {
-        case 0:  res = urandomb(cs,bits); break;
-        case 1:  res = random_ndigit_prime(cs,bits); break;
-        case 2:  res = random_semiprime(cs,bits); break;
-        case 3:  res = random_unrestricted_semiprime(cs,bits); break;
-        case 4:  res = random_safe_prime(cs,bits); break;
-        case 5:
-        case 6:
-        case 7:
-        case 8:
-        case 9:
-        default: res = random_nbit_prime(cs,bits); break;
-      }
-      if (res || ix == 0) XSRETURN_UV(res);
+      dMY_CXT;
+      XSRETURN_UV( urandomb(MY_CXT.randcxt, bits) );
     }
-    DISPATCHPP_GMPONLYIF(ix != 1 || bits != uvmax_maxlen);
+    DISPATCHPP();
+    RETURN_SV_CANONICAL(ST(0));
+
+void random_ndigit_prime(IN SV* svdigits)
+  PREINIT:
+    int dstatus;
+    UV digits;
+  PPCODE:
+    dstatus = _validate_and_set(&digits, aTHX_ svdigits, IFLAG_POS);
+    if (dstatus == 1 && digits <= uvmax_maxlen) {
+      dMY_CXT;
+      UV res = random_ndigit_prime(MY_CXT.randcxt, digits);
+      if (res != 0) XSRETURN_UV(res);
+    }
+    DISPATCHPP_GMPONLYIF(dstatus != 1 || digits != uvmax_maxlen);
+    RETURN_SV_CANONICAL(ST(0));
+
+void random_nbit_prime(IN SV* svbits)
+  ALIAS:
+    random_shawe_taylor_prime = 1
+    random_maurer_prime = 2
+    random_proven_prime = 3
+    random_strong_prime = 4
+    random_safe_prime = 5
+    random_semiprime = 6
+    random_unrestricted_semiprime = 7
+  PREINIT:
+    UV bits, minarg, res;
+  PPCODE:
+    if (_validate_and_set(&bits, aTHX_ svbits, IFLAG_POS)) {
+      minarg = ix==7 ? 3 : ix==6 ? 4 : ix==5 ? 3 : ix==4 ? 128 : 2;
+      if (bits < minarg) croak("%s: input '%d' must be >= %d", SUBNAME, (int)bits, (int)minarg);
+      if (bits <= BITS_PER_WORD) {
+        dMY_CXT;
+        void *cs = MY_CXT.randcxt;
+        switch (ix) {
+          case 5:  res = random_safe_prime(cs,bits); break;
+          case 6:  res = random_semiprime(cs,bits); break;
+          case 7:  res = random_unrestricted_semiprime(cs,bits); break;
+          default: res = random_nbit_prime(cs,bits); break;
+        }
+        if (res) XSRETURN_UV(res);
+      }
+    }
+    DISPATCHPP();
     RETURN_SV_CANONICAL(ST(0));
 
 void urandomm(IN SV* svn)
