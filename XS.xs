@@ -1505,8 +1505,6 @@ PPCODE:
 
 void csrand(IN SV* seed = 0)
   PREINIT:
-    unsigned char* data;
-    STRLEN size;
     dMY_CXT;
   PPCODE:
     if (items == 0) {
@@ -1514,8 +1512,10 @@ void csrand(IN SV* seed = 0)
     } else if (_XS_get_secure()) {
       croak("secure option set, manual seeding disabled");
     } else {
-      data = (unsigned char*) SvPV(seed, size);
-      csprng_seed(MY_CXT.randcxt, size, data);
+      STRLEN size;
+      unsigned char* data = (unsigned char*) SvPV(seed, size);
+      uint32_t size32 = size > (STRLEN)UINT32_MAX ? UINT32_MAX : (uint32_t)size;
+      csprng_seed(MY_CXT.randcxt, size32, data);
     }
     if (_XS_get_callgmp() >= 42) CALLROOTSUB("_csrand_p");
     return;

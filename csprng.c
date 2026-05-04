@@ -23,7 +23,9 @@
  *    1.48 ns/word  Xoroshiro128+
  *    1.16 ns/word  SplitMix64
  *
- * These functions do locking, the underlying library does not.
+ * The functions here do not use locking, but use an opaque context.
+ * Threads can use their own contexts to keep things separate.
+ * Sharing a single context between threads would require the caller to lock.
  */
 
 #include <stdio.h>
