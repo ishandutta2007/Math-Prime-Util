@@ -1526,8 +1526,10 @@ UV srand(IN UV seedval = 0)
   CODE:
     if (_XS_get_secure())
       croak("secure option set, manual seeding disabled");
-    if (items == 0)
-      get_entropy_bytes(sizeof(UV), (unsigned char*) &seedval);
+    if (items == 0) {
+      if (get_entropy_bytes(sizeof(UV),(unsigned char*)&seedval) != sizeof(UV))
+        croak("Failed to get entropy bytes for srand");
+    }
     csprng_srand(MY_CXT.randcxt, seedval);
     if (_XS_get_callgmp() >= 42) CALLROOTSUB("_srand_p");
     RETVAL = seedval;
