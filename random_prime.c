@@ -76,8 +76,8 @@ UV random_prime(void* ctx, UV lo, UV hi)
   }
 }
 
-/* Note that 7 chosen bases or the first 12 prime bases are enough
- * to guarantee sucess.  We could choose to limit to those. */
+/* Note that 7 deterministic bases or the first 12 prime bases are enough to
+ * guarantee success for 64-bit inputs.  We could choose to limit to those. */
 bool is_mr_random(void* ctx, UV n, UV k) {
   if (k >= 3*(n/4))
     return is_prob_prime(n);

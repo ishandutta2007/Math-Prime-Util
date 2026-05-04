@@ -1318,11 +1318,16 @@ static SV* xs_to_bigint_nonneg(pTHX_ SV* r) {
 /******************************************************************************/
 
 static void csprng_init_seed(void* ctx) {
-  unsigned char* data;
-  New(0, data, 64, unsigned char);
-  get_entropy_bytes(64, data);
-  csprng_seed(ctx, 64, data);
-  Safefree(data);
+  unsigned char data[64];
+  const uint32_t n = (uint32_t) sizeof(data);
+  if (get_entropy_bytes(n, data) != n)
+    croak("Failed to get entropy bytes for CSPRNG seed");
+  csprng_seed(ctx, n, data);
+  {
+    volatile unsigned char *p = (volatile unsigned char *) data;
+    uint32_t i = n;
+    while (i-- > 0) *p++ = 0;
+  }
 }
 
 static void _comb_init(UV* cm, UV k, int derangement) {
