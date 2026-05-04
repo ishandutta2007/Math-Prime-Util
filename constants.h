@@ -34,6 +34,8 @@
  #define MPU_MAX_LUCKY_IDX      UVCONST(395236168661920929)  /* Not correct */
 #endif
 
+#define MAX_RANDOM_BYTES        UVCONST(2147483646)
+
 
 /* Small table of primes; 0,2,3,5,7,...   primes_small[n] is the nth prime.
  * Defined in util.c; 306 entries (index 0 + primes 2..2011). */

@@ -8,6 +8,9 @@ Revision history for Perl module Math::Prime::Util
       it will use the user configured bigint class (default Math::BigInt).
       We no longer try to preserve the input bigint class.
 
+    - random_bytes and entropy_bytes accept inputs 0 to 2^31-2.  The previously
+      documented values were ambiguous (unsigned).  This makes them concrete.
+
     [ADDED]
 
     - is_safe_prime(n)                returns 1 if odd pos n and (n-1)/2 prime

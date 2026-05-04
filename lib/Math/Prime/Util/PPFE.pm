@@ -50,15 +50,17 @@ sub csrand {
 }
 sub entropy_bytes {
   my($bytes) = @_;
-  croak "entropy_bytes: input must be integer bytes between 1 and 4294967295"
-    if !defined($bytes) || $bytes < 1 || $bytes > 4294967295 || $bytes != int($bytes);
-  my $data = Math::Prime::Util::Entropy::entropy_bytes($bytes);
+  my $n = defined $bytes ? "$bytes" : "";
+  croak "entropy_bytes: input must be an integer between 0 and 2147483646"
+      if $n !~ /^\+?\d+\z/ || 0+$n > 2147483646;
+  $n = 0+$n;
+  my $data = Math::Prime::Util::Entropy::entropy_bytes($n);
   if (!defined $data) {
     # We can't find any entropy source!  Highly unusual.
     Math::Prime::Util::_srand();
-    $data = random_bytes($bytes);
+    $data = random_bytes($n);
   }
-  croak "entropy_bytes internal got wrong amount!" unless length($data) == $bytes;
+  croak "entropy_bytes internal got wrong amount!" unless length($data) == $n;
   $data;
 }
 

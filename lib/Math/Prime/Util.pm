@@ -6252,8 +6252,8 @@ With the ":rand" tag, this function is additionally exported as C<rand>.
 
   $str = random_bytes(32);     # 32 random bytes
 
-Given an unsigned number C<n> of bytes, returns a string filled with random
-data from the CSPRNG.  Performance for large quantities:
+Given a non-negative integer number of bytes C<n>, returns a string filled
+with random data from the CSPRNG.  Performance for large quantities:
 
     Module/Method                  Rate   Type
     -------------             ---------   ----------------------
@@ -6277,6 +6277,8 @@ data from the CSPRNG.  Performance for large quantities:
     pack CORE::rand             25 MB/s   PRNG - drand48 (no XS)
     Bytes::Random                2.6 MB/s PRNG - drand48 (no XS)
 
+The input C<n> must be between 0 and 2147483646.
+
 =head2 entropy_bytes
 
 Similar to random_bytes, but directly using the entropy source.
@@ -6286,6 +6288,9 @@ the L</random_bytes> chart above, using C<dd> generated the same
 13 MB/s performance as our L</entropy_bytes> function.
 
 The actual performance will be highly system dependent.
+
+Similar to C<random_bytes>, the input must be between
+0 and 2,147,483,646 (C<2^31-2>).
 
 =head2 urandomb
 

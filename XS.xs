@@ -1556,32 +1556,34 @@ NV drand(NV m = 0.0)
   OUTPUT:
     RETVAL
 
-SV* random_bytes(IN UV n)
+SV* random_bytes(IN SV* svn)
+  ALIAS:
+    entropy_bytes = 1
   PREINIT:
-    char* sptr;
-    dMY_CXT;
-  CODE:
-    RETVAL = newSV(n == 0 ? 1 : n);
-    SvPOK_only(RETVAL);
-    SvCUR_set(RETVAL, n);
-    sptr = SvPVX(RETVAL);
-    csprng_rand_bytes(MY_CXT.randcxt, n, (unsigned char*)sptr);
-    sptr[n] = '\0';
-  OUTPUT:
-    RETVAL
-
-SV* entropy_bytes(IN UV n)
-  PREINIT:
-    char* sptr;
-  CODE:
-    RETVAL = newSV(n == 0 ? 1 : n);
-    SvPOK_only(RETVAL);
-    SvCUR_set(RETVAL, n);
-    sptr = SvPVX(RETVAL);
-    get_entropy_bytes(n, (unsigned char*)sptr);
-    sptr[n] = '\0';
-  OUTPUT:
-    RETVAL
+    int nstatus;
+    UV n;
+  PPCODE:
+    nstatus = _validate_and_set(&n, aTHX_ svn, IFLAG_NONNEG);
+    if (nstatus != 1 || n > MAX_RANDOM_BYTES)
+      croak("%s: input must be an integer between 0 and %"UVuf, SUBNAME, MAX_RANDOM_BYTES);
+    if (n == 0)
+      RETURN_SV(sv_2mortal(newSVpvs("")));
+    {
+      dMY_CXT;
+      char* sptr;
+      SV* svret = sv_2mortal(newSV(n));
+      SvPOK_only(svret);
+      SvCUR_set(svret, n);
+      sptr = SvPVX(svret);
+      if (ix == 0) {
+        csprng_rand_bytes(MY_CXT.randcxt, n, (unsigned char*)sptr);
+      } else {
+        UV got = get_entropy_bytes(n, (unsigned char*)sptr);
+        if (got != n) croak("%s: requested %"UVuf" bytes, got %"UVuf, SUBNAME, n, got);
+      }
+      sptr[n] = '\0';
+      RETURN_SV(svret);
+    }
 
 UV _is_csprng_well_seeded()
   ALIAS:

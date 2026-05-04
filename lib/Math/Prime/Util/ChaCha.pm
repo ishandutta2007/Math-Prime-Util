@@ -228,9 +228,12 @@ sub _prng_new {
   }
   sub random_bytes {
     my($bytes) = @_;
-    $bytes = (defined $bytes) ? int abs $bytes : 0;
-    $_str .= _keystream($bytes-length($_str),$_state) if length($_str) < $bytes;
-    return substr($_str, 0, $bytes, '');
+    my $n = defined $bytes ? "$bytes" : "";
+    croak "random_bytes: input must be an integer between 0 and 2147483646"
+      if $n !~ /^\+?\d+\z/ || 0+$n > 2147483646;
+    $n = 0+$n;
+    $_str .= _keystream($n-length($_str),$_state) if length($_str) < $n;
+    return substr($_str, 0, $n, '');
   }
 }
 
