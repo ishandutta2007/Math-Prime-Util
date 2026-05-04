@@ -851,13 +851,11 @@ sub sieve_prime_cluster {
   validate_integer_nonneg($lo);
   validate_integer_nonneg($hi);
 
-  if ($Math::Prime::Util::_GMPfunc{"sieve_prime_cluster"}) {
-    return maybetobigintall(
-             Math::Prime::Util::GMP::sieve_prime_cluster($lo,$hi,@cl)
-           );
-  }
-
   return @{Mprimes($lo,$hi)} if scalar(@cl) == 0;
+
+  return maybetobigintall(
+             Math::Prime::Util::GMP::sieve_prime_cluster($lo,$hi,@cl)
+         ) if $Math::Prime::Util::_GMPfunc{"sieve_prime_cluster"};
 
   unshift @cl, 0;
   for my $i (1 .. $#cl) {
@@ -10214,7 +10212,7 @@ sub trial_factor {
       $n = pop(@f);
       push @F,@f;
     }
-    return ref($_[0]) ? maybetobigintall(@F) : @F;
+    return maybetobigintall(@F);
   }
 
   my @factors;
@@ -10417,10 +10415,8 @@ sub factor {
     return @factors;
   }
 
-  if ($Math::Prime::Util::_GMPfunc{"factor"}) {
-    my @factors = Math::Prime::Util::GMP::factor($N);
-    return ref($_[0]) ? maybetobigintall(@factors) : @factors;
-  }
+  return maybetobigintall(Math::Prime::Util::GMP::factor($N))
+    if $Math::Prime::Util::_GMPfunc{"factor"};
 
   my $lim = 4999;  # How much trial factoring to do
   # For native integers, we could save a little time by doing hardcoded trials
@@ -11314,9 +11310,8 @@ sub ramanujan_tau {
 
   # Use GMP if we have no XS or if size is small
   if ($n < 100000 || !getconfig()->{'xs'}) {
-    if ($Math::Prime::Util::_GMPfunc{"ramanujan_tau"}) {
-      return maybetobigint(Math::Prime::Util::GMP::ramanujan_tau($n));
-    }
+    return maybetobigint(Math::Prime::Util::GMP::ramanujan_tau($n))
+      if $Math::Prime::Util::_GMPfunc{"ramanujan_tau"};
   }
   Mvecprod(map { _taupower($_->[0],$_->[1]) } Mfactor_exp($n));
 }
