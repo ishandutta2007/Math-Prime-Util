@@ -5821,12 +5821,14 @@ Given a single non-negative integer C<n>, returns a random permutation
 of the integers from C<0> to C<n-1>.
 
 Optionally takes a second non-negative integer argument C<k>.
-The returned list will then have only C<k> elements.
+The returned list will then have at most C<k> elements.
+If C<k> is greater than or equal to C<n>, a full random permutation is returned.
 This is more efficient than truncating the full shuffled list.
 
 The randomness comes from our CSPRNG.
 
-The slicing technique shown in the last example is similar to L</vecsample>.
+The slicing technique shown in the last two examples are similar to
+L</shuffle> and L</vecsample>.
 
 =head2 shuffle
 
@@ -5838,7 +5840,7 @@ Like randperm, the randomness comes from our CSPRNG.
 This function is functionally identical to the C<shuffle> function
 in L<List::Util>.  The only difference is the random source (Chacha20
 with better randomness, a larger period, and a larger state).  This
-does make it slower.
+does make it slightly slower.
 
 If the entire shuffled array is desired, this is faster than slicing
 with L</randperm> as shown in its example above.  If fewer elements
@@ -5851,7 +5853,10 @@ L</randperm> will be much more efficient.
   @twoof = vecsample(2,@data);  # Select two random values
 
 Takes a non-negative integer C<k> and a list, and returns C<k> randomly
-selected values from the list.  The randomness comes from our CSPRNG.
+selected elements from the list.  The randomness comes from our CSPRNG.
+A given list entry will never be returned more than once.  If the count
+C<k> is greater than or equal to the number of list elements, the entire
+list is returned in random order, similar to L</shuffle>.
 
 If the input is exactly two elements (C<k> and one other) and the second
 value is an array reference, then we will use it as the input list:

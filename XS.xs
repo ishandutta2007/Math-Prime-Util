@@ -6205,8 +6205,13 @@ void vecsample(IN SV* svk, ...)
     Size_t  nitems, i;
     dMY_CXT;
   PPCODE:
-    if (items == 1)
+    if (_validate_and_set(&k, aTHX_ svk, IFLAG_NONNEG) != 1) {
+      int nret = DISPATCHPP();
+      XSRETURN(nret);
+    }
+    if (items == 1 || k == 0)
       XSRETURN_EMPTY;
+
     randcxt = MY_CXT.randcxt;
     /*
      * Fisher-Yates shuffle with first 'k' selections returned.
@@ -6226,7 +6231,7 @@ void vecsample(IN SV* svk, ...)
     if (items > 2 || !SvROK(ST(1)) || SvTYPE(SvRV(ST(1))) != SVt_PVAV) {
       /* Standard form, where we are given an array of items */
       nitems = items-1;
-      if (_validate_and_set(&k, aTHX_ svk, IFLAG_NONNEG) == 0 || k > nitems)
+      if (k > nitems)
         k = nitems;
       ST(0) = ST(items-1); /* Move last value to the first stack entry. */
       for (i = 0; i < k; i++) {
@@ -6237,11 +6242,10 @@ void vecsample(IN SV* svk, ...)
       DECL_ARREF(avp);
       USE_ARREF(avp, ST(1), SUBNAME, AR_READ);
       nitems = len_avp;
-
-      if (_validate_and_set(&k, aTHX_ svk, IFLAG_NONNEG) == 0 || k > nitems)
-        k = nitems;
-      if (k == 0)
+      if (nitems == 0)
         XSRETURN_EMPTY;
+      if (k > nitems)
+        k = nitems;
       if (nitems < 65536) {
         uint16_t *I;
         New(0, I, nitems, uint16_t);
