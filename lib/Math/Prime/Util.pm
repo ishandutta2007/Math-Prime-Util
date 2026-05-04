@@ -6392,7 +6392,7 @@ range.
 
 The goal is to return a uniform distribution of the primes in the range,
 meaning for each prime in the range, the chances are equally likely that it
-will be seen.  This is removes from consideration such algorithms as
+will be seen.  This removes from consideration such algorithms as
 C<PRIMEINC>, which although efficient, gives very non-random output.  This
 also implies that the numbers will not be evenly distributed, since the
 primes are not evenly distributed.  Stated differently, the random prime
@@ -6432,7 +6432,7 @@ For better performance with large bit sizes, install L<Math::Prime::Util::GMP>.
   my $bigprime = random_nbit_prime(512);
 
 Selects a random n-bit prime, where the input is an integer number of bits.
-A prime with the nth bit set will be uniformly selected.
+A prime with the nth bit set will be selected.
 
 For bit sizes of 64 and lower, L</random_prime> is used, which gives completely
 uniform results in this range.  For sizes larger than 64, Algorithm 1 of
@@ -6589,31 +6589,33 @@ The proof construction consists of a single chain of C<Pocklington> types.
 
 Takes a positive integer number of bits C<bits>, returns a
 random semiprime of exactly C<bits> bits.
+C<bits> must be C<4> or greater.
 The result has exactly two prime factors (hence semiprime).
 
 The factors will be approximately equal size, which is typical
 for cryptographic use.  For example, a 64-bit semiprime of this
 type is the product of two 32-bit primes.
-C<bits> must be C<4> or greater.
 
-Some effort is taken to select uniformly from the universe of
-C<bits>-bit semiprimes.  This takes slightly longer than some
-methods that do not select uniformly.
+By "approximately equal size" we mean the two factors will be
+a C<floor(bits/2)>-bit prime and a C<ceil(bits/2)>-bit prime.
+Clearly if bits is even then the two factors are the same size.
+If odd, then the sizes will differ by one bit.
 
 =head2 random_unrestricted_semiprime
 
 Takes a positive integer number of bits C<bits>, returns a
 random semiprime of exactly C<bits> bits.
-The result has exactly two prime factors (hence semiprime).
-
-The factors are uniformly selected from the universe of all
-C<bits>-bit semiprimes.  This means semiprimes with one factor
-equal to C<2> will be most common, C<3> next most common, etc.
 C<bits> must be C<3> or greater.
+The result has exactly two prime factors (hence semiprime).
 
 Some effort is taken to select uniformly from the universe of
 C<bits>-bit semiprimes.  This takes slightly longer than some
 methods that do not select uniformly.
+
+Because of this distribution, semiprimes with a small prime factor are more
+common than semiprimes whose factors are both large.  For example,
+semiprimes with one factor equal to C<2> are the most common, those with
+one factor equal to C<3> are next most common, and so on.
 
 
 =head1 UTILITY FUNCTIONS

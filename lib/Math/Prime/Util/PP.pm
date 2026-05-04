@@ -13131,7 +13131,7 @@ sub random_semiprime {
 
   my $n;
   my $min = Mpowint(2,$b-1);
-  my $max = $min + ($min - 1);
+  my $max = Maddint($min, $min - 1);
   my $L = $b >> 1;
   my $N = $b - $L;
   do {
