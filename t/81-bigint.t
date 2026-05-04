@@ -528,8 +528,6 @@ subtest 'random primes', sub {
   # Failure and shortcuts for MRR:
   ok(!eval { miller_rabin_random(undef,4); },   "MRR(undef,4)");
   ok(!eval { miller_rabin_random(10007,-4); },   "MRR(10007,-4)");
-  # Note use of 1-1 : bigint on perl 5.6 and 5.8 is totally borked
-  is(miller_rabin_random(10007, 1-1), 1, "MRR(n,0) = 1");
   is(miller_rabin_random(61, 17), 1, "MRR(61,17) = 1");
   is(miller_rabin_random(62, 17), 1-1, "MRR(62,17) = 0");
   is(miller_rabin_random(1009), 1, "MRR(1009) = 1");   # runs one random base

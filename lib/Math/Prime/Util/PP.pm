@@ -13095,17 +13095,14 @@ sub random_shawe_taylor_prime {
 }
 
 sub miller_rabin_random {
-  my($n, $k, $seed) = @_;
+  my($n, $k) = @_;
   validate_integer($n);
-  if (scalar(@_) == 1 ) { $k = 1; } else { validate_integer_nonneg($k); }
+  if (scalar(@_) == 1 ) { $k = 1; } else { validate_integer_positive($k); }
 
   return 0 if $n < 2;
-  return 1 if $k <= 0;
 
-  if ($Math::Prime::Util::_GMPfunc{"miller_rabin_random"}) {
-    return Math::Prime::Util::GMP::miller_rabin_random($n, $k, $seed) if defined $seed;
-    return Math::Prime::Util::GMP::miller_rabin_random($n, $k);
-  }
+  return Math::Prime::Util::GMP::miller_rabin_random($n, $k)
+    if $Math::Prime::Util::_GMPfunc{"miller_rabin_random"};
 
   # getconfig()->{'assume_rh'})  ==>  2*log(n)^2
   my $maxk = Mdivint(Mmulint(3,$n),4);

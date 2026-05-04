@@ -2263,17 +2263,18 @@ is_frobenius_pseudoprime(IN SV* svn, IN SV* svp = 0, IN SV* svq = 0)
     XSRETURN(1);
 
 void
-miller_rabin_random(IN SV* svn, IN IV bases = 1, IN char* seed = 0)
+miller_rabin_random(IN SV* svn, IN SV* svnbases = 0)
   PREINIT:
-    int status;
-    UV n;
-    dMY_CXT;
+    int nstatus, bstatus;
+    UV n, nbases;
   PPCODE:
-    if (bases < 0) croak("miller_rabin_random: expected positive number of bases");
-    status = _validate_and_set(&n, aTHX_ svn, IFLAG_ANY);
-    if (status == -1) RETURN_NPARITY(0);
-    if (seed == 0 && status == 1)
-      RETURN_NPARITY( is_mr_random(MY_CXT.randcxt, n, bases) );
+    nstatus = _validate_and_set(&n, aTHX_ svn, IFLAG_ANY);
+    if (items > 1) bstatus=_validate_and_set(&nbases,aTHX_ svnbases,IFLAG_POS);
+    else           { bstatus = 1;  nbases = 1; }
+    if (nstatus != 0 && bstatus != 0) {
+      dMY_CXT;
+      RETURN_NPARITY(nstatus == -1 ? 0 : is_mr_random(MY_CXT.randcxt,n,nbases));
+    }
     DISPATCHPP();
     XSRETURN(1);
 
