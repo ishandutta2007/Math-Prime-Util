@@ -11608,6 +11608,9 @@ my @_Riemann_Zeta_Table = (
 sub RiemannZeta {
   my($x) = @_;
 
+  return -1.5 if $x == 0;
+  return MPU_INFINITY if $x == 1;
+
   # Try our GMP code if possible.
   if ($Math::Prime::Util::_GMPfunc{"zeta"}) {
     my($wantbf,$xdigits) = _bfdigits($x);

@@ -679,7 +679,8 @@ sub verify_prime {
 
 sub RiemannZeta {
   my($n) = @_;
-  croak("Invalid input to RiemannZeta:  x must be > 0") if $n <= 0;
+  croak "Parameter must be defined" if !defined $n;
+  croak("Invalid input to RiemannZeta:  x must be >= 0") if $n < 0;
 
   return $n-$n if $n > 10_000_000;   # Over 3M leading zeros
 
@@ -691,6 +692,7 @@ sub RiemannZeta {
 
 sub RiemannR {
   my($n) = @_;
+  croak "Parameter must be defined" if !defined $n;
   croak("Invalid input to RiemannR:  x must be > 0") if $n <= 0;
 
   return _XS_RiemannR($n) if !ref($n) && $_Config{'xs'};
@@ -701,6 +703,7 @@ sub RiemannR {
 
 sub ExponentialIntegral {
   my($n) = @_;
+  croak "Parameter must be defined" if !defined $n;
   return $_Neg_Infinity if $n == 0;
   return 0              if $n == $_Neg_Infinity;
   return $_Infinity     if $n == $_Infinity;
@@ -713,6 +716,7 @@ sub ExponentialIntegral {
 
 sub LogarithmicIntegral {
   my($n) = @_;
+  croak "Parameter must be defined" if !defined $n;
   return 0              if $n == 0;
   return $_Neg_Infinity if $n == 1;
   return $_Infinity     if $n == $_Infinity;
@@ -730,6 +734,7 @@ sub LogarithmicIntegral {
 
 sub LambertW {
   my($x) = @_;
+  croak "Parameter must be defined" if !defined $x;
 
   return _XS_LambertW($x) if !ref($x) && $_Config{'xs'};
 
@@ -739,6 +744,7 @@ sub LambertW {
 
 sub bernreal {
   my($n, $precision) = @_;
+  _validate_integer_nonneg($n);
   do { require Math::BigFloat; Math::BigFloat->import(); } unless defined $Math::BigFloat::VERSION;
 
   if ($Math::Prime::Util::_GMPfunc{"bernreal"}) {
