@@ -12022,18 +12022,18 @@ sub fordivisors {
 
 sub forpart {
   my($sub, $n, $rhash) = @_;
-  _forcompositions(1, $sub, $n, $rhash);
+  _forcompositions(1, $sub, $n, $rhash, "forpart");
 }
 sub forcomp {
   my($sub, $n, $rhash) = @_;
-  _forcompositions(0, $sub, $n, $rhash);
+  _forcompositions(0, $sub, $n, $rhash, "forcomp");
 }
 sub _forcompositions {
-  my($ispart, $sub, $n, $rhash) = @_;
+  my($ispart, $sub, $n, $rhash, $subname) = @_;
   validate_integer_nonneg($n);
   my($mina, $maxa, $minn, $maxn, $primeq) = (1,$n,1,$n,-1);
   if (defined $rhash) {
-    croak "forpart second argument must be a hash reference"
+    croak "$subname second argument must be a hash reference"
       unless ref($rhash) eq 'HASH';
     if (defined $rhash->{amin}) {
       $mina = $rhash->{amin};
@@ -12268,7 +12268,7 @@ sub permtonum {
       croak "permtonum: invalid permutation array" if $v >= $n || $S{$v}++;
     }
   }
-  my $f = factorial($n-1);
+  my $f = Mfactorial($n-1);
   my $rank = 0;
   for my $i (0 .. $n-2) {
     my $k = 0;
@@ -12557,6 +12557,8 @@ sub _setcomplement {
 
 sub toset {
   my(@list) = @_;
+  croak "toset: expected integer list, not array reference"
+    if @list == 1 && ref($list[0]) eq 'ARRAY';
   validate_integer($_) for @list;
   return \@list if scalar(@list) <= 1;
   my($k,%seen);
@@ -12567,6 +12569,7 @@ sub toset {
 # Is the second set a subset of the first set?
 sub setcontains {
   my $set = shift @_;
+  croak 'Not an array reference' unless (ref($set) || '') eq 'ARRAY';
   my $iset;
   if (@_ == 1 && ref($_[0]) eq 'ARRAY') {
     $iset = $_[0];
@@ -12607,6 +12610,7 @@ sub setcontains {
 
 sub setcontainsany {
   my($set,@in) = @_;
+  croak 'Not an array reference' unless (ref($set) || '') eq 'ARRAY';
   my $iset;
   if (@in == 1 && ref($in[0]) eq 'ARRAY') {
     $iset = $in[0];
@@ -12651,6 +12655,7 @@ sub _setinsert1 {       # UNUSED
 
 sub setinsert {
   my($set, @in) = @_;
+  croak 'Not an array reference' unless (ref($set) || '') eq 'ARRAY';
   my $iset;
   if (@in == 1 && ref($in[0]) eq 'ARRAY') {
     $iset = [ @{$in[0]} ];
@@ -12738,6 +12743,7 @@ sub _setremove1 {
 
 sub setremove {
   my $set = shift;
+  croak 'Not an array reference' unless (ref($set) || '') eq 'ARRAY';
   my $iset;
   if (@_ == 1 && ref($_[0]) eq 'ARRAY') {
     $iset = [ @{$_[0]} ];
@@ -12793,6 +12799,7 @@ sub _setinvert1 {
 
 sub setinvert {
   my($set, @in) = @_;
+  croak 'Not an array reference' unless (ref($set) || '') eq 'ARRAY';
   return 0 if @in == 0;
   my $iset;
   if (@in == 1 && ref($in[0]) eq 'ARRAY') {

@@ -6041,6 +6041,8 @@ void toset(...)
     UV *L;
   PPCODE:
     if (items == 0) RETURN_EMPTY_SET_REF();
+    if (items == 1 && SvROK(ST(0)) && SvTYPE(SvRV(ST(0))) == SVt_PVAV)
+      croak("toset: expected integer list, not array reference");
     type = array_to_int_array(aTHX_ &len, &L, 1, &ST(0), items);
     if (type != IARR_TYPE_BAD)
       RETURN_LIST_REF(len, L, type != IARR_TYPE_NEG);
