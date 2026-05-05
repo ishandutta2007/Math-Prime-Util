@@ -6900,9 +6900,13 @@ finding small factors.
   my @factors = pminus1_factor($n, 1_000, 50_000);  # set B1 and B2
 
 Produces factors, not necessarily prime, of the positive number input.  This
-is Pollard's C<p-1> method, using two stages with default smoothness
-settings of 1_000_000 for B1, and C<10 * B1> for B2.  This method can rapidly
-find a factor C<p> of C<n> where C<p-1> is smooth (it has no large factors).
+is Pollard's C<p-1> method, using two stages.
+This method can rapidly find a factor C<p> of C<n> where C<p-1> is smooth
+(it has no large factors).
+
+Without the optional B1 and B2 arguments, the implementation decides on their
+values and might do a ramp-up method (trying successively larger B1/B2 values).
+
 
 =head2 pplus1_factor
 
@@ -6929,10 +6933,16 @@ L</pminus1_factor>.
 =head2 ecm_factor
 
   my @factors = ecm_factor($n);
-  my @factors = ecm_factor($n, 100, 400, 10);      # B1, B2, # of curves
+  my @factors = ecm_factor($n, 100);          # B1 hint
+  my @factors = ecm_factor($n, 100, 400);     # B1 and B2 hints
+  my @factors = ecm_factor($n, 100, 400, 10); # B1, B2, curve-count hints
 
 Produces factors, not necessarily prime, of the positive number input.  This
 is the elliptic curve method using two stages.
+
+The optional arguments are considered hints.
+In particular, B2 will often be calculated internally (a value of 0 for B2
+indicates to do this for all implementations).
 
 
 

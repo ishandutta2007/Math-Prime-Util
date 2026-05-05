@@ -10485,10 +10485,23 @@ sub _found_factor {
 
 ################################################################################
 
-# TODO:
-sub squfof_factor { Mtrial_factor(@_) }
-sub lehman_factor { Mtrial_factor(@_) }
-sub pplus1_factor { pminus1_factor(@_) }
+sub _stub_factor {
+  my($n, $rounds) = @_;
+  validate_integer_nonneg($n);
+  validate_integer_nonneg($rounds) if defined $rounds;
+
+  my @f = _basic_factor($n);
+  return @f if $n < 4;
+  return (@f, $n) if _is_prime7($n);
+
+  my @nf = _factor_pbrent($n, $rounds);
+  return (@f, @nf);
+}
+
+# No implementations of these here, but make the calls still exist.
+sub squfof_factor { _stub_factor(@_); }
+sub lehman_factor { _stub_factor(@_); }
+sub pplus1_factor { _stub_factor(@_); }
 
 sub _factor_power {
   my $r;
@@ -10688,13 +10701,13 @@ sub _factor_pminus1 {
   if (!defined $B1) {
     for my $mul (1, 100, 1000, 10_000, 100_000, 1_000_000) {
       $B1 = 1000 * $mul;
-      $B2 = 1*$B1;
+      $B2 = 1*$B1;   # Choose to not do stage 2 when doing this ramp up.
       my @nf = _factor_pminus1($n, $B1, $B2);
       return @nf if @nf > 1;
     }
     return ($n);
   }
-  $B2 = 1*$B1 unless defined $B2;
+  $B2 = 10*$B1 unless defined $B2;
 
   $n = tobigint($n) if !ref($n) || (defined $_BIGINT && $_BIGINT ne ref($n));
   # bigints:  n, pa, t, savea, [stage2] b, bm
@@ -10947,7 +10960,7 @@ sub _factor_ecm {
     return ($n);
   }
 
-  $B2 = 10*$B1 unless defined $B2;
+  $B2 = 10*$B1 unless defined $B2 && $B2 > 0;
   my $sqrt_b1 = int(sqrt($B1)+1);
 
   # Affine code.  About 3x slower than the projective, and no stage 2.
@@ -11117,6 +11130,11 @@ sub ecm_factor {
     $B1 = 0 if !defined $B1;
     $ncurves = 0 if !defined $ncurves;
     my @ef = Math::Prime::Util::GMP::ecm_factor($n, $B1, $ncurves);
+    # GMP could return:
+    #   1 item     (n).  No factor found, return it.
+    #   2 items    (p,q) where p*q=n.  Canonicalize the largest of the two.
+    #   >2 items.  (p,q,r,...) where vecprod(@ef)=n.  Use only the last one.
+    #              We could do a _found_factor on each one but this is unusual.
     if (@ef > 1) {
       my $ecmfac = maybetobigint($ef[-1]);
       return (@f, _found_factor($ecmfac, $n, "ECM (GMP) B1=$B1 curves $ncurves"));
