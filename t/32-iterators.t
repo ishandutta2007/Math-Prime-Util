@@ -540,8 +540,7 @@ for my $k (1 .. 10) {
   @set=([1,2],[qw/a b c/]);  @out=();forsetproduct {push @out,"@_"; @_=(1..10); }@set;
   is_deeply(\@out, ['1 a','1 b','1 c','2 a','2 b','2 c'], 'forsetproduct replace @_ in sub');
 
-  SKIP: {
-    skip 'XS implementation keeps references', 1 if $ENV{MPU_NO_XS};
+  {
     my @a = (1,2);
     my @b = ('a','b');
     @out = ();

@@ -45,6 +45,8 @@ Revision history for Perl module Math::Prime::Util
 
     - chebyshev_theta and chebyshev_psi had tables corrected for 3 ranges.
 
+    - lastfor handles die/croak inside loops much better.
+
     [FUNCTIONALITY AND PERFORMANCE]
 
     - Some functions now have custom op support.  This means in Perl 5.14+

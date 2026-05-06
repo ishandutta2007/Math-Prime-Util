@@ -546,27 +546,8 @@ sub random_proven_prime_with_cert {
 #############################################################################
 
 sub formultiperm (&$) {    ## no critic qw(ProhibitSubroutinePrototypes)
-  my($sub, $iref) = @_;
-  croak("formultiperm first argument must be an array reference") unless ref($iref) eq 'ARRAY';
-
-  my($sum, %h, @n) = (0);
-  $h{$_}++ for @$iref;
-  @n = map { [$_, $h{$_}] } sort(keys(%h));
-  $sum += $_->[1] for @n;
-
   require Math::Prime::Util::PP;
-  my $oldforexit = Math::Prime::Util::_start_for_loop();
-  my($ok, $err);
-  {
-    local $@;
-    $ok = eval {
-      Math::Prime::Util::PP::_multiset_permutations( $sub, [], \@n, $sum );
-      1;
-    };
-    $err = $@;
-  }
-  Math::Prime::Util::_end_for_loop($oldforexit);
-  die $err unless $ok;
+  Math::Prime::Util::PP::formultiperm(@_);
 }
 
 #############################################################################

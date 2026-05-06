@@ -12214,6 +12214,9 @@ sub forsetproduct {
   # Exit if no arrays or any are empty.
   return if scalar(@v) == 0 || grep { !@$_ } @v;
 
+  # We will have a local copy of the sets, so user sub changes don't impact us.
+  @v = map { [ @$_ ] } @v;
+
   my @outv = map { $v[$_]->[0] } 0 .. $#v;
   my @cnt = (0) x @v;
 
@@ -12264,6 +12267,21 @@ sub _multiset_permutations {
       last if Math::Prime::Util::_get_forexit();
     }
   }
+}
+
+sub formultiperm {
+  my($sub, $iref) = @_;
+  croak("formultiperm first argument must be an array reference")
+    unless ref($iref) eq 'ARRAY';
+
+  my($sum, %h, @n) = (0);
+  $h{$_}++ for @$iref;
+  @n = map { [$_, $h{$_}] } sort(keys(%h));
+  $sum += $_->[1] for @n;
+
+  _run_for_loop {
+    _multiset_permutations($sub, [], \@n, $sum);
+  };
 }
 
 sub numtoperm {
