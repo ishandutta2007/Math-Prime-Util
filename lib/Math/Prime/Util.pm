@@ -5796,6 +5796,7 @@ the extra time can be significant.
 Given a non-negative integer C<n> and integer C<k>, return the
 rank C<k> lexicographic permutation of C<n> elements.
 C<k> will be interpreted as mod C<n!>.
+C<n> must fit in a native signed integer.
 
 This will match iteration number C<k> (zero based) of L</forperm>.
 
@@ -5825,6 +5826,7 @@ later use the same lexicographic ordering).
 
 Given a single non-negative integer C<n>, returns a random permutation
 of the integers from C<0> to C<n-1>.
+C<n> must fit in a native signed integer.
 
 Optionally takes a second non-negative integer argument C<k>.
 The returned list will then have at most C<k> elements.

@@ -12112,6 +12112,7 @@ sub _forcompositions {
 sub forcomb {
   my($sub, $n, $k) = @_;
   validate_integer_nonneg($n);
+  croak "forcomb: n must fit in native signed integer" if $n > SINTMAX;
 
   my($begk, $endk);
   if (defined $k) {
@@ -12188,12 +12189,14 @@ sub _forperm {
 sub forperm {
   my($sub, $n, $k) = @_;
   validate_integer_nonneg($n);
+  croak "forperm: n must fit in native signed integer" if $n > SINTMAX;
   croak "Too many arguments for forperm" if defined $k;
   _forperm($sub, $n, 1);
 }
 sub forderange {
   my($sub, $n, $k) = @_;
   validate_integer_nonneg($n);
+  croak "forderange: n must fit in native signed integer" if $n > SINTMAX;
   croak "Too many arguments for forderange" if defined $k;
   return if $n == 1;
   _forperm($sub, $n, 0);
@@ -12241,6 +12244,7 @@ sub numtoperm {
   validate_integer($k);
   return () if $n == 0;
   return (0) if $n == 1;
+  croak "numtoperm: n must fit in native signed integer" if $n > SINTMAX;
   my $f = Mfactorial($n-1);
   $k = Mmodint($k,Mmulint($f,$n)) if $k < 0 || Mdivint($k,$f) >= $n;
   my @S = map { $_ } 0 .. $n-1;
@@ -12284,9 +12288,8 @@ sub permtonum {
 sub randperm {
   my($n,$k) = @_;
   validate_integer_nonneg($n);
-  if (defined $k) {
-    validate_integer_nonneg($k);
-  }
+  validate_integer_nonneg($k) if defined $k;
+  croak "randperm: n must fit in native signed integer" if $n > SINTMAX;
   $k = $n if !defined($k) || $k > $n;
   return () if $k == 0;
 
