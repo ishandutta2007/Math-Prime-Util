@@ -44,6 +44,7 @@ plan tests => 8        # forprimes errors
             + 28       # oo iterator methods
             + 12       # lastfor
             + 1        # callback die restores lastfor state
+            + 1        # formultiperm callback die restores lastfor state
             + 1        # empty-callback lastfor
             + 4        # forpart/forcomp option validation
             + 1        # forfactored/forsquarefree initial-callback lastfor
@@ -417,6 +418,18 @@ subtest 'callback die restores lastfor state' => sub {
     1;
   } ? '' : $@;
   is($err, '', 'caught inner callback die does not corrupt outer loop state');
+};
+subtest 'formultiperm callback die restores lastfor state' => sub {
+  ok(!eval { lastfor(); 1 }, 'lastfor initially croaks outside a loop');
+
+  my $err = eval { formultiperm { die "intentional callback die\n" } [1,1,2]; 1 } ? '' : $@;
+  like($err, qr/intentional callback die/, 'callback die propagates');
+
+  ok(!eval { lastfor(); 1 }, 'lastfor still croaks after callback die');
+
+  my @out;
+  formultiperm { push @out, "@_"; lastfor; } [1,1,2];
+  is_deeply(\@out, ['1 1 2'], 'lastfor still works after callback die');
 };
 subtest 'empty-callback lastfor' => sub {
   my $t = 0;
