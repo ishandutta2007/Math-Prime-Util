@@ -11904,15 +11904,27 @@ sub Pi {
 
 ################################################################################
 
+sub _run_for_loop (&) {   ## no critic qw(ProhibitSubroutinePrototypes)
+  my($code) = @_;
+  my $oldforexit = Math::Prime::Util::_start_for_loop();
+  my($ok, $err);
+  {
+    local $@;
+    $ok = eval { $code->(); 1 };
+    $err = $@;
+  }
+  Math::Prime::Util::_end_for_loop($oldforexit);
+  die $err unless $ok;
+}
+
 sub forprimes {
   my($sub, $beg, $end) = @_;
-  if (defined $end) { validate_integer_nonneg($beg); }
-  else              { ($beg,$end) = (2, $beg);        }
+  if (@_ >= 3) { validate_integer_nonneg($beg); }
+  else         { ($beg,$end) = (2, $beg);        }
   validate_integer_nonneg($end);
   $beg = 2 if $beg < 2;
 
-  my $oldforexit = Math::Prime::Util::_start_for_loop();
-  {
+  _run_for_loop {
     my $pp;
     local *_ = \$pp;
     for (my $p = Mnext_prime($beg-1);  $p <= $end;  $p = Mnext_prime($p)) {
@@ -11920,8 +11932,7 @@ sub forprimes {
       $sub->();
       last if Math::Prime::Util::_get_forexit();
     }
-  }
-  Math::Prime::Util::_end_for_loop($oldforexit);
+  };
 }
 
 
@@ -11940,8 +11951,7 @@ sub _forcomp_sub {
     $beg = 4 if $beg < 4;
   }
   $end = tobigint(~0) if $end == ~0 && !ref($end);
-  my $oldforexit = Math::Prime::Util::_start_for_loop();
-  {
+  _run_for_loop {
     my $pp;
     local *_ = \$pp;
     for (my $p = Mnext_prime($beg-1);  $beg <= $end;  $p = Mnext_prime($p)) {
@@ -11953,8 +11963,7 @@ sub _forcomp_sub {
       $beg += $cinc;
       last if Math::Prime::Util::_get_forexit();
     }
-  }
-  Math::Prime::Util::_end_for_loop($oldforexit);
+  };
 }
 sub forcomposites {
   _forcomp_sub('composites', @_);
@@ -11973,8 +11982,7 @@ sub _forfac_sub {
   validate_integer_nonneg($end);
   $beg = 1 if $beg < 1;
 
-  my $oldforexit = Math::Prime::Util::_start_for_loop();
-  {
+  _run_for_loop {
     my $pp;
     local *_ = \$pp;
     while ($beg <= $end) {
@@ -11990,8 +11998,7 @@ sub _forfac_sub {
       }
       $beg++;
     }
-  }
-  Math::Prime::Util::_end_for_loop($oldforexit);
+  };
 }
 sub forfactored {
   _forfac_sub(0, @_);
@@ -12007,8 +12014,7 @@ sub fordivisors {
   my($sub, $n) = @_;
   validate_integer_nonneg($n);
   my @divisors = Mdivisors($n);
-  my $oldforexit = Math::Prime::Util::_start_for_loop();
-  {
+  _run_for_loop {
     my $pp;
     local *_ = \$pp;
     foreach my $d (@divisors) {
@@ -12016,8 +12022,7 @@ sub fordivisors {
       $sub->();
       last if Math::Prime::Util::_get_forexit();
     }
-  }
-  Math::Prime::Util::_end_for_loop($oldforexit);
+  };
 }
 
 sub forpart {
@@ -12064,50 +12069,50 @@ sub _forcompositions {
 
   return if !$doloop0 && !$doloopn;
 
-  my $oldforexit = Math::Prime::Util::_start_for_loop();
+  _run_for_loop {
 
-  $sub->() if $doloop0;
+    $sub->() if $doloop0;
 
-  if ($doloopn && !Math::Prime::Util::_get_forexit()) {
-    my ($x, $y, $r, $k);
-    my @a = (0) x ($n);
-    $k = 1;
-    $a[0] = $mina - 1;
-    $a[1] = $n - $mina + 1;
-    while ($k != 0) {
-      $x = $a[$k-1]+1;
-      $y = $a[$k]-1;
-      $k--;
-      $r = $ispart ? $x : 1;
-      while ($r <= $y) {
-        $a[$k] = $x;
-        $x = $r;
-        $y -= $x;
-        $k++;
-      }
-      $a[$k] = $x + $y;
-      # Restrict size
-      while ($k+1 > $maxn) {
-        $a[$k-1] += $a[$k];
+    if ($doloopn && !Math::Prime::Util::_get_forexit()) {
+      my ($x, $y, $r, $k);
+      my @a = (0) x ($n);
+      $k = 1;
+      $a[0] = $mina - 1;
+      $a[1] = $n - $mina + 1;
+      while ($k != 0) {
+        $x = $a[$k-1]+1;
+        $y = $a[$k]-1;
         $k--;
-      }
-      next if $k+1 < $minn;
-      # Restrict values
-      if ($mina > 1 || $maxa < $n) {
-        last if $a[0] > $maxa;
-        if ($ispart) {
-          next if $a[$k] > $maxa;
-        } else {
-          next if Mvecany(sub{ $_ < $mina || $_ > $maxa }, @a[0..$k]);
+        $r = $ispart ? $x : 1;
+        while ($r <= $y) {
+          $a[$k] = $x;
+          $x = $r;
+          $y -= $x;
+          $k++;
         }
+        $a[$k] = $x + $y;
+        # Restrict size
+        while ($k+1 > $maxn) {
+          $a[$k-1] += $a[$k];
+          $k--;
+        }
+        next if $k+1 < $minn;
+        # Restrict values
+        if ($mina > 1 || $maxa < $n) {
+          last if $a[0] > $maxa;
+          if ($ispart) {
+            next if $a[$k] > $maxa;
+          } else {
+            next if Mvecany(sub{ $_ < $mina || $_ > $maxa }, @a[0..$k]);
+          }
+        }
+        next if $primeq == 0 && Mvecany(sub{ Mis_prime($_) }, @a[0..$k]);
+        next if $primeq == 2 && Mvecany(sub{ !Mis_prime($_) }, @a[0..$k]);
+        last if Math::Prime::Util::_get_forexit();
+        $sub->(@a[0 .. $k]);
       }
-      next if $primeq == 0 && Mvecany(sub{ Mis_prime($_) }, @a[0..$k]);
-      next if $primeq == 2 && Mvecany(sub{ !Mis_prime($_) }, @a[0..$k]);
-      last if Math::Prime::Util::_get_forexit();
-      $sub->(@a[0 .. $k]);
     }
-  }
-  Math::Prime::Util::_end_for_loop($oldforexit);
+  };
 }
 sub forcomb {
   my($sub, $n, $k) = @_;
@@ -12124,67 +12129,67 @@ sub forcomb {
     $endk = $n;
   }
 
-  my $oldforexit = Math::Prime::Util::_start_for_loop();
-  for my $k ($begk .. $endk) {
-    if ($k == 0) {
-      $sub->();
-    } else {
-      my @c = 0 .. $k-1;
-      while (1) {
-        $sub->(@c);
-        last if Math::Prime::Util::_get_forexit();
-        next if $c[-1]++ < $n-1;
-        my $i = $k-2;
-        $i-- while $i >= 0 && $c[$i] >= $n-($k-$i);
-        last if $i < 0;
-        $c[$i]++;
-        while (++$i < $k) { $c[$i] = $c[$i-1] + 1; }
+  _run_for_loop {
+    for my $k ($begk .. $endk) {
+      if ($k == 0) {
+        $sub->();
+      } else {
+        my @c = 0 .. $k-1;
+        while (1) {
+          $sub->(@c);
+          last if Math::Prime::Util::_get_forexit();
+          next if $c[-1]++ < $n-1;
+          my $i = $k-2;
+          $i-- while $i >= 0 && $c[$i] >= $n-($k-$i);
+          last if $i < 0;
+          $c[$i]++;
+          while (++$i < $k) { $c[$i] = $c[$i-1] + 1; }
+        }
       }
+      last if Math::Prime::Util::_get_forexit();
     }
-    last if Math::Prime::Util::_get_forexit();
-  }
-  Math::Prime::Util::_end_for_loop($oldforexit);
+  };
 }
 sub _forperm {
   my($sub, $n, $all_perm) = @_;
   if ($n <= 1) {
-    my $oldforexit = Math::Prime::Util::_start_for_loop();
-    if ($n == 0) { $sub->(); } else { $sub->(0); }
-    Math::Prime::Util::_end_for_loop($oldforexit);
+    _run_for_loop {
+      if ($n == 0) { $sub->(); } else { $sub->(0); }
+    };
     return;
   }
   my $k = $n;
   my @c = reverse 0 .. $k-1;
   my $inc = 0;
   my $send = 1;
-  my $oldforexit = Math::Prime::Util::_start_for_loop();
-  while (1) {
-    if (!$all_perm) {   # Derangements via simple filtering.
-      $send = 1;
-      for my $p (0 .. $#c) {
-        if ($c[$p] == $k-$p-1) {
-          $send = 0;
-          last;
+  _run_for_loop {
+    while (1) {
+      if (!$all_perm) {   # Derangements via simple filtering.
+        $send = 1;
+        for my $p (0 .. $#c) {
+          if ($c[$p] == $k-$p-1) {
+            $send = 0;
+            last;
+          }
         }
       }
+      if ($send) {
+        $sub->(reverse @c);
+        last if Math::Prime::Util::_get_forexit();
+      }
+      if (++$inc & 1) {
+        @c[0,1] = @c[1,0];
+        next;
+      }
+      my $j = 2;
+      $j++ while $j < $k && $c[$j] > $c[$j-1];
+      last if $j >= $k;
+      my $m = 0;
+      $m++ while $c[$j] > $c[$m];
+      @c[$j,$m] = @c[$m,$j];
+      @c[0..$j-1] = reverse @c[0..$j-1];
     }
-    if ($send) {
-      $sub->(reverse @c);
-      last if Math::Prime::Util::_get_forexit();
-    }
-    if (++$inc & 1) {
-      @c[0,1] = @c[1,0];
-      next;
-    }
-    my $j = 2;
-    $j++ while $j < $k && $c[$j] > $c[$j-1];
-    last if $j >= $k;
-    my $m = 0;
-    $m++ while $c[$j] > $c[$m];
-    @c[$j,$m] = @c[$m,$j];
-    @c[0..$j-1] = reverse @c[0..$j-1];
-  }
-  Math::Prime::Util::_end_for_loop($oldforexit);
+  };
 }
 sub forperm {
   my($sub, $n, $k) = @_;
@@ -12200,6 +12205,29 @@ sub forderange {
   croak "Too many arguments for forderange" if defined $k;
   return if $n == 1;
   _forperm($sub, $n, 0);
+}
+
+sub forsetproduct {
+  my($sub, @v) = @_;
+  croak 'Not a subroutine reference' unless (ref($sub) || '') eq 'CODE';
+  croak 'Not an array reference' if grep {(ref($_) || '') ne 'ARRAY'} @v;
+  # Exit if no arrays or any are empty.
+  return if scalar(@v) == 0 || grep { !@$_ } @v;
+
+  my @outv = map { $v[$_]->[0] } 0 .. $#v;
+  my @cnt = (0) x @v;
+
+  _run_for_loop {
+    my $i = 0;
+    while ($i >= 0) {
+      $sub->(@outv);
+      last if Math::Prime::Util::_get_forexit();
+      for ($i = $#v; $i >= 0; $i--) {
+        if ($cnt[$i] >= $#{$v[$i]}) { $cnt[$i] = 0; $outv[$i] = $v[$i]->[0]; }
+        else { $outv[$i] = $v[$i]->[++$cnt[$i]]; last; }
+      }
+    }
+  };
 }
 
 sub _multiset_permutations {
@@ -12952,25 +12980,25 @@ sub foralmostprimes {
   if ($segsize < 5*1e6) { $segsize = 5e6; }
   # warn "  estcount $estcount   nsegs $nsegs   segsize $segsize\n";
 
-  my $oldforexit = Math::Prime::Util::_start_for_loop();
-  while ($lo <= $hi) {
-    my $seghi = Mvecmin($hi, Maddint($lo,$segsize)-1);
-    my $ap = Math::Prime::Util::almost_primes($k, $lo, $seghi);
-    #my $ap = [];  _genkap($lo, $seghi, $k, 1, 2, sub { push @$ap,$_[0]; });
-    # warn "  from $lo to $seghi found ",scalar(@$ap), " $k-almost-primes\n";
-    {
-      my $pp;
-      local *_ = \$pp;
-      for my $kap (@$ap) {
-        $pp = $kap;
-        $sub->();
-        last if Math::Prime::Util::_get_forexit();
+  _run_for_loop {
+    while ($lo <= $hi) {
+      my $seghi = Mvecmin($hi, Maddint($lo,$segsize)-1);
+      my $ap = Math::Prime::Util::almost_primes($k, $lo, $seghi);
+      #my $ap = [];  _genkap($lo, $seghi, $k, 1, 2, sub { push @$ap,$_[0]; });
+      # warn "  from $lo to $seghi found ",scalar(@$ap), " $k-almost-primes\n";
+      {
+        my $pp;
+        local *_ = \$pp;
+        for my $kap (@$ap) {
+          $pp = $kap;
+          $sub->();
+          last if Math::Prime::Util::_get_forexit();
+        }
       }
+      $lo = Madd1int($seghi);
+      last if Math::Prime::Util::_get_forexit();
     }
-    $lo = Madd1int($seghi);
-    last if Math::Prime::Util::_get_forexit();
-  }
-  Math::Prime::Util::_end_for_loop($oldforexit);
+  };
 }
 
 

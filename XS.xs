@@ -358,6 +358,24 @@ static SV* _sv_const_int(pTHX_ IV v) {
   return sv_2mortal(newSViv(v));
 }
 
+typedef struct {
+  uint16_t previous_forcount;
+  uint16_t expected_forcount;
+  char     previous_forexit;
+  char     active;
+} forcount_guard_t;
+
+static void forcount_guard_cleanup(pTHX_ void *arg) {
+  forcount_guard_t *guard = (forcount_guard_t *)arg;
+  if (guard->active) {
+    dMY_CXT;
+    MY_CXT.forcount = guard->previous_forcount;
+    MY_CXT.forexit  = guard->previous_forexit;
+    guard->active = 0;
+  }
+  Safefree(guard);
+}
+
 #define SV_USE_BIGINT_AMAGIC(svn) \
   (    (_sv_is_bigint_fast(aTHX_ svn) || (!_XS_get_callgmp() && _sv_is_bigint(aTHX_ svn))) \
     && (SvGETMAGIC(svn),SvAMAGIC(svn)) )
@@ -6547,10 +6565,14 @@ lastfor()
 
 #define START_FORCOUNT \
     do { \
-      oldforloop = ++MY_CXT.forcount; \
-      oldforexit = MY_CXT.forexit; \
+      New(0, forguard, 1, forcount_guard_t); \
+      forguard->previous_forcount = MY_CXT.forcount; \
+      forguard->expected_forcount = ++MY_CXT.forcount; \
+      forguard->previous_forexit = MY_CXT.forexit; \
+      forguard->active = 1; \
       forexit = &MY_CXT.forexit; \
       *forexit = 0; \
+      SAVEDESTRUCTOR_X(forcount_guard_cleanup, forguard); \
     } while(0)
 
 #define CHECK_FORCOUNT \
@@ -6558,15 +6580,18 @@ lastfor()
 
 #define END_FORCOUNT \
     do { \
+      current_forcount = MY_CXT.forcount; \
       /* Put back outer loop's exit request, if any. */ \
-      *forexit = oldforexit; \
+      *forexit = forguard->previous_forexit; \
+      MY_CXT.forcount = forguard->previous_forcount; \
+      forguard->active = 0; \
       /* Ensure loops are nested and not woven. */ \
-      if (MY_CXT.forcount-- != oldforloop) croak("for loop mismatch"); \
+      if (current_forcount != forguard->expected_forcount) croak("for loop mismatch"); \
     } while (0)
 
 #define DECL_FORCOUNT \
-    uint16_t oldforloop; \
-    char     oldforexit; \
+    forcount_guard_t *forguard; \
+    uint16_t current_forcount; \
     char    *forexit
 
 void

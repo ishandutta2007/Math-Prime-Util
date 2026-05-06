@@ -24,6 +24,7 @@ use Math::BigFloat;
 our $iter_scope_probe;
 
 my $use64 = Math::Prime::Util::prime_get_config->{'maxbits'} > 32;
+my $usexs = Math::Prime::Util::prime_get_config->{'xs'};
 my $broken64 = (18446744073709550592 == ~0);
 
 plan tests => 8        # forprimes errors
@@ -42,6 +43,7 @@ plan tests => 8        # forprimes errors
             + 7        # oo iterator simple
             + 28       # oo iterator methods
             + 12       # lastfor
+            + 1        # callback die restores lastfor state
             + 1        # empty-callback lastfor
             + 4        # forpart/forcomp option validation
             + 1        # forfactored/forsquarefree initial-callback lastfor
@@ -399,6 +401,23 @@ ok(!eval { prime_iterator_object(4.5); }, "iterator 4.5");
   forcomposites { $t=$_; lastfor if $_ > 2000; } 20000;
   is($t, 2001, "lastfor in forcomposites stops appropriately");
 }
+subtest 'callback die restores lastfor state' => sub {
+  ok(!eval { lastfor(); 1 }, 'lastfor initially croaks outside a loop');
+
+  my $err = eval { forprimes { die "intentional callback die\n" } 10; 1 } ? '' : $@;
+  like($err, qr/intentional callback die/, 'callback die propagates');
+
+  ok(!eval { lastfor(); 1 }, 'lastfor still croaks after callback die');
+
+  $err = eval {
+    forprimes {
+      eval { forprimes { die "inner callback die\n" } 10 };
+      lastfor;
+    } 20;
+    1;
+  } ? '' : $@;
+  is($err, '', 'caught inner callback die does not corrupt outer loop state');
+};
 subtest 'empty-callback lastfor' => sub {
   my $t = 0;
   forpart { $t++; lastfor; } 0;

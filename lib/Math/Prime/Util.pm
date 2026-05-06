@@ -556,8 +556,17 @@ sub formultiperm (&$) {    ## no critic qw(ProhibitSubroutinePrototypes)
 
   require Math::Prime::Util::PP;
   my $oldforexit = Math::Prime::Util::_start_for_loop();
-  Math::Prime::Util::PP::_multiset_permutations( $sub, [], \@n, $sum );
+  my($ok, $err);
+  {
+    local $@;
+    $ok = eval {
+      Math::Prime::Util::PP::_multiset_permutations( $sub, [], \@n, $sum );
+      1;
+    };
+    $err = $@;
+  }
   Math::Prime::Util::_end_for_loop($oldforexit);
+  die $err unless $ok;
 }
 
 #############################################################################

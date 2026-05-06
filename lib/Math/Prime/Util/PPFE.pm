@@ -585,10 +585,11 @@ sub Pi {
 #############################################################################
 
 my $_exitloop = 0;
-sub lastfor { $_exitloop = 1; }
+my $_forcount = 0;
+sub lastfor { croak "lastfor called outside a loop" if $_forcount == 0; $_exitloop = 1; }
 sub _get_forexit { $_exitloop; }
-sub _start_for_loop { my $old = $_exitloop; $_exitloop = 0; $old; }
-sub _end_for_loop { $_exitloop = shift; }
+sub _start_for_loop { $_forcount++; my $old = $_exitloop; $_exitloop = 0; $old; }
+sub _end_for_loop { $_forcount--; $_exitloop = shift; }
 
 no warnings 'prototype';
 sub forprimes (&$;$) {    ## no critic qw(ProhibitSubroutinePrototypes)
@@ -635,26 +636,7 @@ sub forderange (&$;$) {    ## no critic qw(ProhibitSubroutinePrototypes)
 }
 
 sub forsetproduct (&@) {    ## no critic qw(ProhibitSubroutinePrototypes)
-  my($sub, @v) = @_;
-  croak 'Not a subroutine reference' unless (ref($sub) || '') eq 'CODE';
-  croak 'Not an array reference' if grep {(ref($_) || '') ne 'ARRAY'} @v;
-  # Exit if no arrays or any are empty.
-  return if scalar(@v) == 0 || grep { !@$_ } @v;
-
-  my @outv = map { $v[$_]->[0] } 0 .. $#v;
-  my @cnt = (0) x @v;
-
-  my $oldforexit = _start_for_loop();
-  my $i = 0;
-  while ($i >= 0) {
-    $sub->(@outv);
-    last if $_exitloop;
-    for ($i = $#v; $i >= 0; $i--) {
-      if ($cnt[$i] >= $#{$v[$i]}) { $cnt[$i] = 0; $outv[$i] = $v[$i]->[0]; }
-      else { $outv[$i] = $v[$i]->[++$cnt[$i]]; last; }
-    }
-  }
-  _end_for_loop($oldforexit);
+  Math::Prime::Util::PP::forsetproduct(@_);
 }
 
 sub vecreduce (&@) {    ## no critic qw(ProhibitSubroutinePrototypes)
