@@ -6704,21 +6704,16 @@ sub allrootmod {
   return () if $n == 0;
   $A = Mmodint($A,$n);
 
-  return () if $k <= 0 && $A == 0;
-
-  if ($k < 0) {
+  return ($A) if $n == 1;
+  if ($k == 0) {
+    return ($A == 1) ? (0..$n-1) : ();
+  } elsif ($k < 0) {
+    return () if $A == 0;
     $A = Minvmod($A, $n);
     return () unless defined $A && $A > 0;
     $k = -$k;
   }
-
-  # TODO: For testing
-  #my @roots = sort { $a <=> $b }
-  #            grep { Mpowmod($_,$k,$n) == $A } 0 .. $n-1;
-  #return @roots;
-
-  return ($A) if $n <= 2 || $k == 1;
-  return ($A == 1) ? (0..$n-1) : ()  if $k == 0;
+  return ($A) if $n == 2 || $k == 1;
 
   my @roots;
   my @nf = Mis_prime($n) ? ([$n,1]) : Mfactor_exp($n);
@@ -12597,7 +12592,7 @@ sub setminus {
   my($ra,$rb) = @_;
   croak 'Not an array reference' unless (ref($ra) || '') eq 'ARRAY'
                                      && (ref($rb) || '') eq 'ARRAY';
-  return [@$ra] if scalar(@$rb) == 0;
+  return Mtoset(@$ra) if scalar(@$rb) == 0;
   my %inb;
   undef @inb{@$rb};
   Mtoset(grep { !exists $inb{$_} } @$ra);
@@ -12606,8 +12601,8 @@ sub setdelta {
   my($ra,$rb) = @_;
   croak 'Not an array reference' unless (ref($ra) || '') eq 'ARRAY'
                                      && (ref($rb) || '') eq 'ARRAY';
-  return [@$ra] if scalar(@$rb) == 0;
-  return [@$rb] if scalar(@$ra) == 0;
+  return Mtoset(@$ra) if scalar(@$rb) == 0;
+  return Mtoset(@$rb) if scalar(@$ra) == 0;
   my(%ina, %inb);
   undef @ina{@$ra};
   undef @inb{@$rb};

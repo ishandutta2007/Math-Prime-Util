@@ -1138,9 +1138,7 @@ UV* allrootmod(UV* nroots, UV a, UV k, UV n) {
   if (n == 0) return 0;
   if (a >= n) a %= n;
 
-  if (n <= 2 || k == 1)
-    return _one_root(nroots, a);   /* n=1 => [0],  n=2 => [0] or [1] */
-
+  if (n == 1)  return _one_root(nroots, a);  /* n=1 => [0] */
   if (k == 0) {
     if (a != 1) return 0;
     if (n > MAX_ROOTS_RETURNED) croak("Maximum returned roots exceeded");
@@ -1150,6 +1148,7 @@ UV* allrootmod(UV* nroots, UV a, UV k, UV n) {
     *nroots = n;
     return roots;
   }
+  if (n == 2 || k == 1)  return _one_root(nroots, a);
 
   /* Factor n */
   nf = factorint(n);

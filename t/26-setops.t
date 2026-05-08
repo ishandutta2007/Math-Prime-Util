@@ -149,15 +149,26 @@ subtest 'empty-set ops return new refs', sub {
   my $a = [1,2,3];
   my $b = [];
   my $c = [4,5];
+  my $d = [3,1,1];
+  my $e = [5,4,5];
   my $r1 = setminus($a, $b);
   my $r2 = setdelta($a, $b);
   my $r3 = setdelta($b, $c);
+  my $r4 = setminus($d, $b);
+  my $r5 = setdelta($d, $b);
+  my $r6 = setdelta($b, $e);
   is_deeply($r1, [1,2,3], 'setminus value');
   is_deeply($r2, [1,2,3], 'setdelta right empty value');
   is_deeply($r3, [4,5],   'setdelta left empty value');
+  is_deeply($r4, [1,3],   'setminus with empty right returns set form');
+  is_deeply($r5, [1,3],   'setdelta with empty right returns set form');
+  is_deeply($r6, [4,5],   'setdelta with empty left returns set form');
   isnt($r1, $a, 'setminus does not alias input');
   isnt($r2, $a, 'setdelta right empty does not alias input');
   isnt($r3, $c, 'setdelta left empty does not alias input');
+  isnt($r4, $d, 'setminus normalized result does not alias input');
+  isnt($r5, $d, 'setdelta right empty normalized result does not alias input');
+  isnt($r6, $e, 'setdelta left empty normalized result does not alias input');
 };
 
 subtest 'mutating set ops preserve second arg', sub {
