@@ -2510,21 +2510,22 @@ vecextract(IN SV* x, IN SV* svm)
     CHECK_ARRAYREF(x);
     av = (AV*) SvRV(x);
     if (SvROK(svm) && SvTYPE(SvRV(svm)) == SVt_PVAV) {
-      SSize_t j, index;
+      SSize_t j;
       DECL_ARREF(mav);
       USE_ARREF(mav, svm, SUBNAME, AR_READ);
       for (j = 0; (Size_t)j < len_mav; j++) {
-        SV* v = FETCH_ARREF(mav, j);
-        if (_validate_and_set(&mask, aTHX_ v, IFLAG_IV) == 0)
+        if (_validate_and_set(&mask, aTHX_ FETCH_ARREF(mav,j), IFLAG_IV) != 0) {
+          SV** VV = av_fetch(av, (SSize_t)mask, 0);
+          XPUSHs( VV ? *VV : &PL_sv_undef );
+        } else {
           croak("vecextract invalid index");
-        index = (SSize_t)mask;
-        { SV **v = av_fetch(av, index, 0);  if (v) XPUSHs(*v); }
+        }
       }
     } else if (_validate_and_set(&mask, aTHX_ svm, IFLAG_NONNEG)) {
       while (mask) {
         if (mask & 1) {
-          SV** v = av_fetch(av, i, 0);
-          if (v) XPUSHs(*v);
+          SV **VV = av_fetch(av, i, 0);
+          XPUSHs( VV ? *VV : &PL_sv_undef );
         }
         i++;
         mask >>= 1;
@@ -6193,11 +6194,10 @@ void randperm(IN SV* svn, IN SV* svk = 0)
     nstatus = _validate_and_set(&n, aTHX_ svn, IFLAG_NONNEG);
     if (items == 1) { kstatus = nstatus;  k = nstatus ? n : 0; }
     else            { kstatus = _validate_and_set(&k, aTHX_ svk, IFLAG_NONNEG);}
-    if (nstatus == 0 || kstatus == 0) {
-      int nret = DISPATCHPP();
-      XSRETURN(nret);
-    }
-    if (k > n) k = n;
+    if (nstatus == 0 || n > (UV)IV_MAX)
+      croak("randperm: n must fit in native signed integer");
+    if (kstatus == 0 || k > n)  /* k cannot be larger than n */
+      k = n;
     if (k == 0) XSRETURN_EMPTY;
     New(0, S, k, UV);
     randperm(MY_CXT.randcxt, n, k, S);
