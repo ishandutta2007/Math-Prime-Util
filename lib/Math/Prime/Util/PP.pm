@@ -12369,21 +12369,54 @@ sub shuffle {
   @S;
 }
 
+# randperm with the same algorithm as XS vecsample uses.
+# 1. Push the last item to the front.
+# 2. k rounds of Fisher-Yates selection, swapping the chosen entry into place.
+# Includes an optimization for small k.
+sub _randperm_rotated_fy {
+  my($len, $k) = @_;
+
+  if ($k == 1) {
+    my $j = Murandomm($len);
+    return ($j == 0 ? $len-1 : $j-1);
+  }
+
+  my(%m,@O,$j);
+  if ($k > 10000 || $k*25 > $len) {
+    # Construct full index and do k selections with swapping
+    my @I = ($len-1, 0 .. $len-2);
+    @O = map { $j = Murandomm(scalar(@I));    # random index from remaining
+               @I[0,$j] = @I[$j,0];           # move to front
+               shift @I;                      # take it off
+             } 1 .. $k;
+  } else {
+    # Don't construct the full index, track swap locations
+    my $init = sub { return $_[0] == 0 ? $len-1 : $_[0]-1; };
+    for my $i (0 .. $k-1) {
+      my $r = $i + Murandomm($len - $i);
+      my $out = exists $m{$r} ? $m{$r} : $init->($r);
+      my $vi  = exists $m{$i} ? $m{$i} : $init->($i);
+      push @O, $out;
+      $m{$r} = $vi if $r != $i;
+      delete $m{$i};
+    }
+  }
+  @O;
+}
+
 sub vecsample ($@) {   ## no critic qw(ProhibitSubroutinePrototypes)
   my $k = shift;
   validate_integer_nonneg($k);
   return () if $k == 0 || @_ == 0;
+
   my $R = $_[0];
   my $isarr = (@_ > 1 || !ref($R) || ref($R) ne 'ARRAY');
   my $len = $isarr  ?  scalar(@_)  :  scalar(@$R);
-
   $k = $len if $k > $len;
-  my @I = ($len-1, 0 .. $len-2);
-  my $j;
-  my @O = map { $j = Murandomm(scalar(@I));    # random index from remaining
-                @I[0,$j] = @I[$j,0];           # move to front
-                shift @I;                      # take it off
-              } 1 .. $k;
+
+  # Get the random permutation *exactly* as the XS selection is done.
+  # With the same random stream these produce IDENTICAL outputs.
+  my @O = _randperm_rotated_fy($len,$k);
   return $isarr  ?  @_[@O]  :  @$R[@O];
 }
 
@@ -12424,8 +12457,10 @@ sub setbinop (&$;$) {   ## no critic qw(ProhibitSubroutinePrototypes)
   my($sub, $ra, $rb) = @_;
   croak 'Not a subroutine reference' unless (ref($sub) || '') eq 'CODE';
   croak 'Not an array reference' unless (ref($ra) || '') eq 'ARRAY';
+  $ra = [@$ra];  # local copy
   if (defined $rb) {
     croak 'Not an array reference' unless (ref($rb) || '') eq 'ARRAY';
+    $rb = [@$rb];  # local copy
   } else {
     $rb = $ra;
   }
