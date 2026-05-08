@@ -2007,11 +2007,11 @@ bool from_digit_string(UV* rn, const char* s, int base)
   return 1;
 }
 
-bool from_digit_to_UV(UV* rn, const UV* r, int len, int base)
+bool from_digit_to_UV(UV* rn, const UV* r, size_t len, int base)
 {
   UV d, n = 0;
-  int i;
-  if (len < 0 || len > BITS_PER_WORD)
+  size_t i;
+  if (len > BITS_PER_WORD)
     return 0;
   for (i = 0; i < len; i++) {
     d = r[i];
@@ -2023,12 +2023,12 @@ bool from_digit_to_UV(UV* rn, const UV* r, int len, int base)
 }
 
 
-bool from_digit_to_str(char** rstr, const UV* r, int len, int base)
+bool from_digit_to_str(char** rstr, const UV* r, size_t len, int base)
 {
   char *so, *s;
-  int i;
+  size_t i;
 
-  if (len < 0 || !(base == 2 || base == 10 || base == 16)) return 0;
+  if (len >= MAX_SIZET-3 || !(base == 2 || base == 10 || base == 16)) return 0;
 
   if (r[0] >= (UV) base) return 0;  /* TODO: We don't apply extended carry */
 

@@ -235,7 +235,7 @@ SV* _fetch_arref(pTHX_ AV* av, SV** svarr, size_t i) {
     SV **svp = av_fetch(av, i, 0);
     return svp ? *svp : &PL_sv_undef;
   }
-  return svarr[i];
+  return svarr[i] ? svarr[i] : &PL_sv_undef;
 }
 
 #define READ_UV_IARR(dst, src, itype) \
@@ -369,35 +369,47 @@ int array_to_int_array(pTHX_ size_t *retlen, UV** ret, bool want_sort, SV** svba
   return itype;
 }
 
-int arrayref_to_digit_array(pTHX_ UV** ret, AV* av, int base)
+#undef READ_UV_IARR
+
+bool arrayref_to_digit_array(pTHX_ size_t *retlen, UV** ret, SV* sva, int base)
 {
-  SSize_t len, i;
-  UV *r, carry = 0;
-  if (SvTYPE((SV*)av) != SVt_PVAV)
-    croak("fromdigits first argument must be a string or array reference");
-  len = av_count(av);
-  New(0, r, len, UV);
-  for (i = len-1; i >= 0; i--) {
-    SV** psvd = av_fetch(av, i, 0);
-    if (_validate_and_set(r+i, aTHX_ *psvd, IFLAG_ANY) != 1) break;
-    r[i] += carry;
-    if (r[i] >= (UV)base && i > 0) {
-      carry = r[i] / base;
-      r[i] -= carry * base;
+  size_t len, i, j;
+  int itype;
+  UV *r = 0, carry = 0, ubase = (UV)base;
+
+  *ret = 0;
+
+  /* We're treating this as always from fromdigits */
+  if (!SvROK(sva) || SvTYPE(SvRV(sva)) != SVt_PVAV)
+    croak("fromdigits: first argument must be a string or array reference");
+
+  itype = arrayref_to_int_array(aTHX_ &len, &r, 0, sva, "fromdigits");
+
+  if (itype == IARR_TYPE_BAD || itype == IARR_TYPE_NEG) {
+    Safefree(r);
+    return 0;
+  }
+
+  for (i = len; i > 0; i--) {
+    j = i - 1;
+    if (carry != 0) {
+      if (r[j] > UV_MAX - carry) {
+        Safefree(r);
+        return 0;
+      }
+      r[j] += carry;
+    }
+    if (r[j] >= ubase && j > 0) {
+      carry = r[j] / ubase;
+      r[j] -= carry * ubase;
     } else {
       carry = 0;
     }
   }
-  if (i >= 0) {
-    Safefree(r);
-    return -1;
-  }
-  /* printf("array is ["); for(i=0;i<len;i++)printf("%lu,",r[i]); printf("]\n"); */
   *ret = r;
-  return len;
+  *retlen = len;
+  return 1;
 }
-
-#undef READ_UV_IARR
 
 int _compare_array_refs(pTHX_ SV* a, SV* b)
 {

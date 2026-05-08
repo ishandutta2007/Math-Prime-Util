@@ -103,7 +103,6 @@
 #  define EXTEND_TYPE SSize_t
 #endif
 #define MAX_EXTEND  ((Size_t)((EXTEND_TYPE)-1))
-#define MAX_SSIZET  ((SSize_t)((Size_t)(-1) >> 1))
 
 #if PERL_VERSION_GE(5,14,0) && defined(XopENTRY_set)
 # define MPU_HAS_CUSTOM_OPS 1
@@ -6436,27 +6435,29 @@ void fromdigits(SV* svn, SV* svbase = 0)
     if (items > 1)
       bstatus = _validate_and_set(&base, aTHX_ svbase, IFLAG_NONNEG);
     if (base < 2) croak("%s: invalid base: %"UVuf, SUBNAME, base);
-    if (bstatus == 1) {
+    if (bstatus == 1 && base <= PERL_INT_MAX) {
       if (!SvROK(svn)) {  /* string */
         if (from_digit_string(&n, SvPV_nolen(svn), base))
           XSRETURN_UV(n);
       } else if (!_sv_is_bigint(aTHX_ svn)) {     /* array ref of digits */
+        size_t len;
         char *str;
         UV* r = 0;
-        int len = arrayref_to_digit_array(aTHX_ &r, (AV*) SvRV(svn), base);
-        if (from_digit_to_UV(&n, r, len, base)) {
+        if (arrayref_to_digit_array(aTHX_ &len, &r, svn, base)) {
+          if (from_digit_to_UV(&n, r, len, base)) {
+            Safefree(r);
+            XSRETURN_UV(n);
+          } else if (from_digit_to_str(&str, r, len, base)) {
+            Safefree(r);
+            PUSH_BIGINT_STR(str, strlen(str));
+            Safefree(str);
+            XSRETURN(1);
+          }
           Safefree(r);
-          XSRETURN_UV(n);
-        } else if (from_digit_to_str(&str, r, len, base)) {
-          Safefree(r);
-          PUSH_BIGINT_STR(str, strlen(str));
-          Safefree(str);
-          XSRETURN(1);
         }
-        Safefree(r);
       }
     }
-    DISPATCHPP();
+    DISPATCHPP_GMPONLYIF(0); /* GMP fromdigits needs full support */
     RETURN_SV_CANONICAL(ST(0));
 
 void is_harshad(SV* svn, int base = 10)

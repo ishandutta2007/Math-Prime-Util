@@ -135,7 +135,7 @@ int _validate_and_set(UV* val, pTHX_ SV* svn, uint32_t mask);
 int arrayref_to_int_array(pTHX_ size_t *retlen, UV** ret, bool want_sort, SV* sva, const char* fstr);
 SV** _check_sorted_nonneg_arrayref(pTHX_ SV *sv, size_t *lenp);
 int array_to_int_array(pTHX_ size_t *retlen, UV** ret, bool want_sort, SV** svbase, size_t len);
-int arrayref_to_digit_array(pTHX_ UV** ret, AV* av, int base);
+bool arrayref_to_digit_array(pTHX_ size_t *retlen, UV** ret, SV* sva, int base);
 int _compare_array_refs(pTHX_ SV* a, SV* b);
 
 #endif
