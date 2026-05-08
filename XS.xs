@@ -3405,8 +3405,8 @@ void random_factored_integer(IN SV* svn)
       XPUSHs(sv_2mortal(newSVuv( r )));
       XPUSHs(sv_2mortal(newRV_noinc( (SV*) av )));
     } else {
-      DISPATCHPP();
-      XSRETURN(1);
+      int nret = DISPATCHPP();
+      XSRETURN(nret);
     }
 
 
