@@ -3550,6 +3550,9 @@ Unlike the more generic L<List::Util::uniq> and L<List::MoreUtils::XS::uniq>,
 all inputs must be integers.
 With native integers, our function is 2-10x faster.
 
+Currently the Pure Perl code does not require integer input.
+A later release might relax the integer requirement.
+
 =head2 vecfreq
 
   # Produce frequency hash:

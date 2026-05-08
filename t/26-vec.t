@@ -228,6 +228,12 @@ subtest 'vecreduce', sub {
 subtest 'vecextract', sub {
   is_deeply([vecextract(['a'..'z'],12345758)], [qw/b c d e h i n o s t u v x/], "vecextract bits");
   is(join("", vecextract(['a'..'z'],[22,14,17,10,18])), "works", "vecextract list");
+  {
+    my @sparse;
+    $sparse[2] = 20;
+    is_deeply([vecextract(\@sparse,7)], [undef, undef, 20], "vecextract bitmask preserves sparse holes");
+    is_deeply([vecextract(\@sparse,[0,1,2])], [undef, undef, 20], "vecextract index list preserves sparse holes");
+  }
   eval { vecextract([10,20,30], -1) };
   like($@, qr/non-negative integer/, "vecextract rejects negative bitmask");
 };

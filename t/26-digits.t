@@ -38,6 +38,13 @@ subtest 'fromdigits', sub {
   is("".fromdigits("zzzyzzzyzzzyzzzy",36), "7958656371562241451187966", "fromdigits with Large base 36 number");
   ok(!eval { fromdigits([1,2,3],0); 1 } && $@ =~ /invalid base/i, "fromdigits arrayref invalid base");
   ok(!eval { fromdigits("123",0); 1 } && $@ =~ /invalid base/i, "fromdigits string invalid base");
+  is("".fromdigits("10","4294967296"), "4294967296", "fromdigits string with base larger than 32-bit");
+  is("".fromdigits("10","1000000000000"), "1000000000000", "fromdigits string with large base");
+  {
+    my @sparse;
+    $sparse[2] = 2;
+    ok(!eval { fromdigits(\@sparse,10); 1 } && $@ =~ /defined/, "fromdigits rejects sparse arrayref");
+  }
 };
 
 subtest 'todigits', sub {

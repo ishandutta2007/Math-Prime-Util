@@ -17,7 +17,10 @@ subtest 'randperm', sub {
   is(@{[randperm(4,0)]},0,"randperm(4,0) returns 0 elements");
   is(@{[randperm(4,1)]},1,"randperm(4,1) returns 1 element");
   is(@{[randperm(4,8)]},4,"randperm(4,8) returns 4 elements");
+  is(@{[randperm(4,"100000000000000000000")]},4,"randperm(4,large k) returns 4 elements");
   is(@{[randperm(100,4)]},4,"randperm(100,4) returns 4 elements");
+  ok(!eval { randperm("9223372036854775808",1); 1 } && $@ =~ /native signed integer/,
+     "randperm rejects n larger than native signed integer");
 
   my @p128 = randperm(128);
   isnt("@p128", join(" ",0..127), "randperm(128) shuffles");
