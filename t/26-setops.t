@@ -266,6 +266,11 @@ subtest 'is_sidon_set', sub {
   );
   is_deeply( [map { is_sidon_set($_) } @sidons], [map { 1 } 0..$#sidons], "Sidon sets" );
   is_deeply( [map { is_sidon_set($_) } @nonsidons], [map { 0 } 0..$#nonsidons], "non-Sidon sets" );
+  {
+    my @sparse;
+    $sparse[2] = 3;
+    ok(!eval { is_sidon_set(\@sparse); 1 }, "Sidon sparse array rejected");
+  }
 };
 
 subtest 'is_sumfree_set', sub {
@@ -287,6 +292,11 @@ subtest 'is_sumfree_set', sub {
   );
   is_deeply( [map { is_sumfree_set($_) } @sf], [map { 1 } 0..$#sf], "sumfree sets" );
   is_deeply( [map { is_sumfree_set($_) } @nsf], [map { 0 } 0..$#nsf], "non-sumfree sets" );
+  {
+    my @sparse;
+    $sparse[2] = 3;
+    ok(!eval { is_sumfree_set(\@sparse); 1 }, "sumfree sparse array rejected");
+  }
 };
 
 ###### setcontains

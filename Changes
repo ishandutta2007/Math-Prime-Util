@@ -47,6 +47,10 @@ Revision history for Perl module Math::Prime::Util
 
     - lastfor handles die/croak inside loops much better.
 
+    - random_factored_integer dropped the array return for bigints.
+
+    - urandomm(n) accepted n=0 even though documented as positive.  Now rejects.
+
     [FUNCTIONALITY AND PERFORMANCE]
 
     - Some functions now have custom op support.  This means in Perl 5.14+

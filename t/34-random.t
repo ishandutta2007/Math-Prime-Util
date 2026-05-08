@@ -198,7 +198,7 @@ is(entropy_bytes(0),'',"entropy_bytes(0) returns empty string");
 ok(!eval { random_bytes("4foo"); }, "random_bytes rejects invalid input");
 ok(!eval { entropy_bytes("4foo"); }, "entropy_bytes rejects invalid input");
 is(urandomb(0),0,"urandomb(0) returns 0");
-is(urandomm(0),0,"urandomm(0) returns 0");
+ok(!eval { urandomm(0); }, "urandomm(0) is rejected");
 is(urandomm(1),0,"urandomm(1) returns 0");
 
 #######

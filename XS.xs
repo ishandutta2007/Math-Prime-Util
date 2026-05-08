@@ -3298,7 +3298,7 @@ void urandomm(IN SV* svn)
   PREINIT:
     UV n, ret;
   PPCODE:
-    if (_validate_and_set(&n, aTHX_ svn, IFLAG_NONNEG)) {
+    if (_validate_and_set(&n, aTHX_ svn, IFLAG_POS)) {
       dMY_CXT;
       ret = urandomm64(MY_CXT.randcxt, n);
       XSRETURN_UV(ret);

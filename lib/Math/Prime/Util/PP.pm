@@ -13068,6 +13068,7 @@ sub urandomb {
   return ( Math::Prime::Util::irand() >> (32-$n) ) if $n <= 32;
   return ( Math::Prime::Util::irand64() >> (64-$n) ) if MPU_MAXBITS >= 64 && $n <= 64;
   my $nbytes = ($n+7)>>3;
+  croak "urandomb: input too large" if $nbytes > 2147483646;
   my $randstr = Math::Prime::Util::random_bytes($nbytes);
   my $r = _frombytes($randstr);
   $r >>= ($nbytes*8 - $n) if $n & 7;
@@ -13075,7 +13076,7 @@ sub urandomb {
 }
 sub urandomm {
   my($n) = @_;
-  validate_integer_nonneg($n);
+  validate_integer_positive($n);
   return maybetobigint(Math::Prime::Util::GMP::urandomm($n))
     if $Math::Prime::Util::_GMPfunc{"urandomm"};
   return 0 if $n <= 1;

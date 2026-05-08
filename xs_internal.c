@@ -265,8 +265,7 @@ int arrayref_to_int_array(pTHX_ size_t *retlen, UV** ret, bool want_sort, SV* sv
   New(0, r, len, UV);
   for (i = 0; i < len; i++) {
     SV *iv = FETCH_ARREF(avp,i);
-    if (iv == 0) continue;
-    if (SVNUMTEST(iv)) {
+    if (iv != 0 && SVNUMTEST(iv)) {
       IV n = SvIVX(iv);
       if (n < 0) {
         if (SvIsUV(iv))  itype |= IARR_TYPE_POS;
