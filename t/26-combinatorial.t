@@ -90,7 +90,7 @@ subtest 'forperm', sub {
 
 subtest 'formultiperm', sub {
   { my @p; formultiperm { push @p, [@_] } [];
-    is_deeply(\@p, [], "formultiperm []"); }
+    is_deeply(\@p, [ [] ], "formultiperm []"); }
 
   { my @p; formultiperm { push @p, [@_] } [1,2,2];
     is_deeply(\@p, [ [1,2,2], [2,1,2], [2,2,1] ], "formultiperm 1,2,2"); }

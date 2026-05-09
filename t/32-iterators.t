@@ -455,6 +455,10 @@ subtest 'empty-callback lastfor' => sub {
   $t = 0;
   forderange { $t++; lastfor; } 0;
   is($t, 1, 'forderange');
+
+  $t = 0;
+  formultiperm { $t++; lastfor; } [];
+  is($t, 1, 'formultiperm');
 };
 ok(!eval { forpart { 1 } 7, { amin => -1 }; 1 }, 'forpart {amin=>-1} croaks');
 ok(!eval { forpart { 1 } 7, { n => '3.5' }; 1 }, 'forpart {n=>"3.5"} croaks');

@@ -1423,6 +1423,9 @@ sets.  This iterator will be much more efficient.
 There is no ordering requirement for the input array reference.  The results
 will be in lexicographic order.
 
+An empty input array has one empty multiset permutation, so the block is
+called once with no arguments.
+
 
 =head2 forsetproduct
 

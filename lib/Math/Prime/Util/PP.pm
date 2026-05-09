@@ -12231,7 +12231,7 @@ sub forsetproduct {
 sub _multiset_permutations {
   my($sub, $prefix, $ar, $sum) = @_;
 
-  return if $sum == 0;
+  return $sub->(@$prefix) if $sum == 0;
 
   # Remove any values with 0 occurances
   my @n = grep { $_->[1] > 0 } @$ar;
