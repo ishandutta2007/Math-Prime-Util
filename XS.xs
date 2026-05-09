@@ -364,6 +364,14 @@ typedef struct {
   char     active;
 } forcount_guard_t;
 
+typedef struct {
+  SSize_t narrays;
+  SSize_t *arlen;
+  SSize_t *arcnt;
+  SV ***arsvs;
+  char active;
+} forsetproduct_guard_t;
+
 static void forcount_guard_cleanup(pTHX_ void *arg) {
   forcount_guard_t *guard = (forcount_guard_t *)arg;
   if (guard->active) {
@@ -372,6 +380,36 @@ static void forcount_guard_cleanup(pTHX_ void *arg) {
     MY_CXT.forexit  = guard->previous_forexit;
     guard->active = 0;
   }
+  Safefree(guard);
+}
+
+static void forsetproduct_guard_release(pTHX_ forsetproduct_guard_t *guard) {
+  SSize_t i, j;
+  if (!guard || !guard->active)
+    return;
+  if (guard->arsvs) {
+    for (i = 0; i < guard->narrays; i++) {
+      if (guard->arsvs[i]) {
+        SSize_t len = guard->arlen ? guard->arlen[i] : 0;
+        for (j = 0; j < len; j++)
+          if (guard->arsvs[i][j])
+            SvREFCNT_dec(guard->arsvs[i][j]);
+        Safefree(guard->arsvs[i]);
+      }
+    }
+    Safefree(guard->arsvs);
+    guard->arsvs = 0;
+  }
+  Safefree(guard->arlen);
+  guard->arlen = 0;
+  Safefree(guard->arcnt);
+  guard->arcnt = 0;
+  guard->active = 0;
+}
+
+static void forsetproduct_guard_cleanup(pTHX_ void *arg) {
+  forsetproduct_guard_t *guard = (forsetproduct_guard_t *)arg;
+  forsetproduct_guard_release(aTHX_ guard);
   Safefree(guard);
 }
 
@@ -7264,6 +7302,7 @@ void forsetproduct (SV* block, ...)
     SSize_t narrays, i, j, *arlen, *arcnt;
     SV ***arsvs;
     CV *subcv;
+    forsetproduct_guard_t *fsguard;
     DECL_FORCOUNT;
     dMY_CXT;
   PPCODE:
@@ -7279,18 +7318,24 @@ void forsetproduct (SV* block, ...)
         XSRETURN(0);
     }
 
-    Newz(0, arcnt, narrays, SSize_t);
-    New(0, arlen, narrays, SSize_t);
-    New(0, arsvs, narrays, SV**);
-    /* Make local copies of the SV pointers.  Allows magic/tied inputs. */
+    Newz(0, fsguard, 1, forsetproduct_guard_t);
+    fsguard->narrays = narrays;
+    fsguard->active = 1;
+    SAVEDESTRUCTOR_X(forsetproduct_guard_cleanup, fsguard);
+
+    Newz(0, arcnt, narrays, SSize_t);  fsguard->arcnt = arcnt;
+    Newz(0, arlen, narrays, SSize_t);  fsguard->arlen = arlen;
+    Newz(0, arsvs, narrays, SV**);     fsguard->arsvs = arsvs;
+
+    /* Make local SV copies.  Allows magic/tied inputs and prevents source aliasing. */
     for (i = 0; i < narrays; i++) {
       DECL_ARREF(inav);
       USE_ARREF(inav, ST(i+1), SUBNAME, AR_READ);
       arlen[i] = len_inav;
-      New(0, arsvs[i], len_inav, SV*);
+      Newz(0, arsvs[i], len_inav, SV*);
       for (j = 0; j < (SSize_t)len_inav; j++) {
         SV* v = FETCH_ARREF(inav,j);
-        arsvs[i][j] = v ? SvREFCNT_inc_simple_NN(v) : &PL_sv_undef;
+        arsvs[i][j] = v ? newSVsv(v) : newSV(0);
       }
     }
     START_FORCOUNT;
@@ -7300,20 +7345,30 @@ void forsetproduct (SV* block, ...)
       SV **arr;
       I32 gimme = G_VOID;
       AV *av = save_ary(PL_defgv);
+      SSize_t lastarg = narrays-1;
       AvREAL_off(av);
       SC_PUSH_MULTICALL(subcv);
-      do {
-        av_fill(av, narrays-1);
-        arr = AvARRAY(av);
-        for (i = narrays-1; i >= 0; i--)  /* Faster to fill backwards */
+      av_extend(av, lastarg);
+      av_fill(av, lastarg);
+      arr = AvARRAY(av);
+      while (1) {
+        for (i = lastarg; i >= 0; i--)
           arr[i] = arsvs[i][arcnt[i]];
+
         SC_MULTICALL;
         CHECK_FORCOUNT;
-        for (i = narrays-1; i >= 0; i--) {
+
+        for (i = lastarg; i >= 0; i--) {
           if (++arcnt[i] >= arlen[i])  arcnt[i] = 0;
           else                         break;
         }
-      } while (i >= 0);
+        if (i < 0)
+          break;
+        if (AvFILLp(av) != lastarg || AvARRAY(av) != arr) {
+          av_fill(av, lastarg);
+          arr = AvARRAY(av);
+        }
+      }
       FIX_MULTICALL_REFCOUNT;
       SC_POP_MULTICALL;
     }
@@ -7330,15 +7385,7 @@ void forsetproduct (SV* block, ...)
       }
     } while (i >= 0);
 
-    for (i = 0; i < narrays; i++) {
-      for (j = 0; j < arlen[i]; j++)
-        if (arsvs[i][j] != &PL_sv_undef)
-          SvREFCNT_dec(arsvs[i][j]);
-      Safefree(arsvs[i]);
-    }
-    Safefree(arsvs);
-    Safefree(arlen);
-    Safefree(arcnt);
+    forsetproduct_guard_release(aTHX_ fsguard);
     END_FORCOUNT;
 
 void

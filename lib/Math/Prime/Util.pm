@@ -1438,9 +1438,13 @@ While zero or one array references are valid, the result is not very
 interesting.  If any array reference is empty, the product is
 empty, so no subroutine calls are performed.
 
-The subroutine is given an array whose values are aliased to the
-inputs, and are I<not> set to read-only.  Hence modifying the array
-inside the subroutine will cause side-effects.
+At the start, we copy the input array references to avoid aliasing
+the user inputs.  This is done only once.
+Inside the sub, modifying the structure of the callback array C<@_>
+(e.g. using C<shift> or C<pop>) is safe.
+The callback array values are the copied input values, so explicitly
+changing a value (e.g. C<$_[0] = 9>) will affect remaining sub calls
+that use the same copy.
 
 As with other iterators, the C<lastfor> function will cause an early exit.
 

@@ -88,6 +88,8 @@ Revision history for Perl module Math::Prime::Util
     - miller_rabin_random requires nbases > 0, and no longer accepts a third
       argument.  Neither of these were documented.
 
+    - forsetproduct no longer aliases the input arrays.
+
 
 0.74 2026-03-13
 

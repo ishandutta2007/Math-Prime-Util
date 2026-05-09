@@ -51,7 +51,7 @@ plan tests => 8        # forprimes errors
             + 13       # forfactored and forsquarefree
             + 1        # forsemiprimes
             + 1+10     # foralmostprimes
-            + 10       # forsetproduct
+            + 11       # forsetproduct
             + 1        # bigint ranges
             + 0;
 
@@ -552,6 +552,10 @@ for my $k (1 .. 10) {
 
   @set=([1,2],[qw/a b c/]);  @out=();forsetproduct {push @out,"@_"; @_=(1..10); }@set;
   is_deeply(\@out, ['1 a','1 b','1 c','2 a','2 b','2 c'], 'forsetproduct replace @_ in sub');
+
+  @set=([1],[qw/a b/]);  @out=();forsetproduct { push @out, "@_"; $_[0] = 9; } @set;
+  is_deeply([ $set[0], \@out ], [ [1], ['1 a','9 b'] ],
+            'forsetproduct scalar mutation does not modify source array');
 
   {
     my @a = (1,2);
