@@ -6428,8 +6428,8 @@ void todigits(SV* svn, SV* svbase = 0, SV* svtlen = 0)
     }
     if (nstatus != 0 && tlen < 128) {
       if (ix == 0) {             /* todigits with native input */
-        int digits[128];
-        IV len = to_digit_array(digits, n, base, tlen);
+        UV digits[128];
+        int len = to_digit_array(digits, n, base, tlen);
         if (len >= 0) {
           EXTEND(SP, (EXTEND_TYPE)len);
           for (i = 0; i < len; i++)
@@ -6538,22 +6538,26 @@ void is_palindrome(SV* svn, int base = 10)
     DISPATCHPP();
     XSRETURN(1);
 
-void digital_root(SV* svn, int base = 10)
+void digital_root(SV* svn, IN SV* svbase = 0)
   ALIAS:
     mult_digital_root = 1
   PREINIT:
-    UV n, dr;
+    UV n, dr, base;
+    int bstatus;
   PPCODE:
-    if (base < 2) croak("%s: invalid base: %d", SUBNAME, base);
-    if (_validate_and_set(&n, aTHX_ svn, IFLAG_NONNEG)) {
+    if (items==1){bstatus = 1; base = 10;}
+    else         {bstatus = _validate_and_set(&base,aTHX_ svbase,IFLAG_NONNEG);}
+    if (bstatus == 1 && _validate_and_set(&n, aTHX_ svn, IFLAG_NONNEG)) {
+      if (base < 2) croak("%s: invalid base: %"UVuf, SUBNAME, base);
       if (n == 0) {
         dr = 0;
       } else if (ix == 0) {
         dr = 1 + (n-1) % (base-1);
       } else {
-        int i, len, digits[128];
+        UV digits[128];
+        int i, len;
         dr = n;
-        while (dr >= (uint32_t)base) {
+        while (dr >= base) {
           len = to_digit_array(digits, dr, base, -1);
           for (dr = 1, i = 0; i < len; i++)
             dr *= digits[i];

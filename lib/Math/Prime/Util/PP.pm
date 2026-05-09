@@ -5961,7 +5961,7 @@ sub sumdigits {
 sub digital_root {
   my($n,$base) = @_;
   validate_integer_nonneg($n);
-  if (defined $base) {
+  if (@_ > 1) {
     validate_integer_nonneg($base);
     croak "digital_root: invalid base: $base" if $base < 2;
   } else {
@@ -5973,7 +5973,7 @@ sub digital_root {
 sub mult_digital_root {
   my($n,$base) = @_;
   validate_integer_nonneg($n);
-  if (defined $base) {
+  if (@_ > 1) {
     validate_integer_nonneg($base);
     croak "mult_digital_root: invalid base: $base" if $base < 2;
   } else {

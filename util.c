@@ -2047,7 +2047,7 @@ bool from_digit_to_str(char** rstr, const UV* r, size_t len, int base)
   return 1;
 }
 
-int to_digit_array(int* bits, UV n, int base, int length)
+int to_digit_array(UV* bits, UV n, UV base, int length)
 {
   int d;
 
@@ -2066,16 +2066,16 @@ int to_digit_array(int* bits, UV n, int base, int length)
   return length;
 }
 
-int to_digit_string(char* s, UV n, int base, int length)
+int to_digit_string(char* s, UV n, UV base, int length)
 {
-  int digits[128];
+  UV digits[128];
   int i, len = to_digit_array(digits, n, base, length);
 
   if (len < 0) return -1;
-  if (base > 36) croak("invalid base for string: %d", base);
+  if (base < 2 || base > 36) croak("invalid base for string: %"UVuf, base);
 
   for (i = 0; i < len; i++) {
-    int dig = digits[len-i-1];
+    UV dig = digits[len-i-1];
     s[i] = (dig < 10) ? '0'+(char)dig : 'a'+(char)(dig-10);
   }
   s[len] = '\0';

@@ -155,6 +155,9 @@ subtest 'digital_root' => sub {
   is( digital_root(255, 16), 15, "digital_root(255, 16)" );
   is( digital_root("99999999999999999999"),  9, "digital_root bigint (20 nines)" );
   is( digital_root("10000000000000000000"),  1, "digital_root bigint (10^19)" );
+  is( digital_root(10, "4294967296"), 10, "digital_root large base" );
+  is( digital_root(10, "100000000000000000000000000000000000000"), 10,
+      "digital_root huge base" );
 };
 
 subtest 'mult_digital_root' => sub {
@@ -175,6 +178,7 @@ subtest 'mult_digital_root' => sub {
   is( mult_digital_root("1" x 50), 1, "mdr('1'x50)=1" );
   ok(!eval { mult_digital_root(17, 1); 1 } && $@ =~ /mult_digital_root: .*invalid base: 1/i,
      "mult_digital_root invalid base croak");
+  is( mult_digital_root(10, "4294967296"), 10, "mult_digital_root large base" );
 };
 
 subtest 'Wolfram examples', sub {
