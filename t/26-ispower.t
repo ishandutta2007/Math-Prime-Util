@@ -74,6 +74,7 @@ plan tests => 0
             + 5  # is_power
             + 2*scalar(keys %powers) + scalar(@negpowers)
             + 13  # tests for 3,5,7 power
+            + 7  # is_power interface
             + 3  # is_square
             + 7  # is_sum_of_squares
             + 0;
@@ -143,6 +144,28 @@ is( is_power(-1,5), 1, "-1 is a 5th power" );
   $ispow = is_power( 36**5 , 0, \$root);
   is( $ispow, 10, "36^5 is a 10th power...");
   is( $root, 6, "...and the root is 6");
+}
+
+{
+  my $root;
+  is( is_power(16, undef), 4, "undef exponent requests largest power" );
+  is_deeply( [is_power(16, undef, \$root), $root],
+             [4, 2], "undef exponent supports root return" );
+
+  eval { is_power(16, -2); 1 };
+  like($@, qr/non-negative integer/, "is_power rejects negative exponent");
+
+  eval { is_power(16, 2, undef); 1 };
+  like($@, qr/scalar reference/i, "is_power rejects undef root reference for true result");
+
+  eval { is_power(17, 2, undef); 1 };
+  like($@, qr/scalar reference/i, "is_power rejects undef root reference for false result");
+
+  eval { is_power(16, 2, []); 1 };
+  like($@, qr/scalar reference/i, "is_power rejects array root reference for true result");
+
+  eval { is_power(17, 2, []); 1 };
+  like($@, qr/scalar reference/i, "is_power rejects array root reference for false result");
 }
 
 is( is_power(56129,3), 0, "56129 is not a 3rd power" );

@@ -329,6 +329,11 @@ sub _is_aref {
   my $type = reftype($_[0]);
   defined($type) && $type eq 'ARRAY';
 }
+sub _is_sref {
+  my $type = reftype($_[0]);
+  # Return true if we can write a scalar in it, regardless of current contents.
+  defined($type) && ($type eq 'SCALAR' || $type eq 'REF');
+}
 
 sub _try_real_gmp_func {
   my($fref, $ver, $x) = @_;
@@ -6574,7 +6579,7 @@ sub _allrootmod_cprod {
   my($aroots1, $p1, $aroots2, $p2) = @_;
   my($t, $n, $inv);
 
-  $n = mulint($p1, $p2);
+  $n = Mmulint($p1, $p2);
   $inv = Minvmod($p1, $p2);
   croak("CRT has undefined inverse") unless defined $inv;
 
@@ -7117,7 +7122,8 @@ sub is_power {
   my ($n, $a, $refp) = @_;
   validate_integer($n);
   if (!defined $a) { $a = 0; } else { validate_integer_nonneg($a); }
-  croak("is_power third argument not a scalar reference") if defined($refp) && !ref($refp);
+  croak "is_power third argument not a scalar reference"
+    if @_ >= 3 && !_is_sref($refp);
   return 0 if abs($n) <= 3 && !$a;
 
   if ($Math::Prime::Util::_GMPfunc{"is_power"} &&
@@ -7201,7 +7207,8 @@ sub is_square {
 sub is_prime_power {
   my ($n, $refp) = @_;
   validate_integer($n);
-  croak("is_prime_power second argument not a scalar reference") if defined($refp) && !ref($refp);
+  croak "is_prime_power second argument not a scalar reference"
+    if @_ >= 2 && !_is_sref($refp);
   return 0 if $n <= 1;
 
   if (Mis_prime($n)) { $$refp = $n if defined $refp; return 1; }
@@ -7228,7 +7235,8 @@ sub is_polygonal {
   my ($n, $k, $refp) = @_;
   validate_integer($n);
   validate_integer_nonneg($k);
-  croak("is_polygonal third argument not a scalar reference") if defined($refp) && !ref($refp);
+  croak "is_polygonal third argument not a scalar reference"
+    if @_ >= 3 && !_is_sref($refp);
   croak("is_polygonal: k must be >= 3") if $k < 3;
   return 0 if $n < 0;
   if ($n <= 1) { $$refp = $n if defined $refp; return 1; }
@@ -7737,7 +7745,8 @@ sub rootint {
   my ($n, $k, $refp) = @_;
   validate_integer_nonneg($n);
   validate_integer_positive($k);
-  croak("rootint: third argument not a scalar reference") if defined $refp && !ref($refp);
+  croak "rootint: third argument not a scalar reference"
+    if @_ >= 3 && !_is_sref($refp);
 
   if ($k == 1) {
     $$refp = $n if defined $refp;
@@ -7837,7 +7846,8 @@ sub logint {
   validate_integer_positive($n);
   validate_integer_nonneg($b);
   croak "logint: base must be > 1" if $b <= 1;
-  croak("logint third argument not a scalar reference") if defined($refp) && !ref($refp);
+  croak "logint third argument not a scalar reference"
+    if @_ >= 3 && !_is_sref($refp);
 
   if ($Math::Prime::Util::_GMPfunc{"logint"}) {
     my $e = Math::Prime::Util::GMP::logint($n, $b);

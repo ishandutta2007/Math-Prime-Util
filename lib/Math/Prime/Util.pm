@@ -2814,17 +2814,19 @@ some integer C<< r > 1, k > 1 >>, and 0 otherwise.  The k returned is
 the largest possible.  This can be used in a boolean statement to
 determine if C<n> is a perfect power.
 
-If given an integer C<n> and a non-negative integer C<k>,
-returns 1 if C<n> is a C<k-th> power, and 0 otherwise.
+An optional non-negative integer second argument C<k> may be given.
+When C<k> is a positive value, it returns 1 if C<n> is a C<k-th> power,
+and 0 otherwise.
 For example, if C<k=2> then this detects perfect squares.
-Setting C<k=0> gives behavior like the first case (the largest root is found
+When the second argument is present but is C<undef> or C<0> then
+it behaves like the first case (the largest exponent is found
 and its value is returned).
 
 If a third argument is given, it must be a scalar reference.  If C<n> is
 a k-th power, then this will be set to the k-th root of C<n>.  For example:
 
   my $n = 222657534574035968;
-  if (my $pow = is_power($n, 0, \my $root)) { say "$n = $root^$pow" }
+  if (my $pow = is_power($n, undef, \my $root)) { say "$n = $root^$pow" }
   # prints:  222657534574035968 = 2948^5
 
 This corresponds to Pari/GP's C<ispower> function with integer arguments.

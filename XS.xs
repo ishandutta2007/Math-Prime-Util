@@ -2942,36 +2942,42 @@ void powerfree_count(IN SV* svn, IN int k = 2)
     RETURN_SV_CANONICAL(ST(0));
 
 void
-is_power(IN SV* svn, IN UV k = 0, IN SV* svroot = 0)
+is_power(IN SV* svn, IN SV* svk = 0, IN SV* svroot = 0)
   PREINIT:
-    int status, ret;
-    UV n;
+    int nstatus, kstatus, ret;
+    UV n, k;
     uint32_t root;
   PPCODE:
-    status = _validate_and_set(&n, aTHX_ svn, IFLAG_ANY);
-    if (status != 0) {
+    nstatus = _validate_and_set(&n, aTHX_ svn, IFLAG_ANY);
+    if (items < 2 || svk == 0 || !SvOK(svk)) {
+      kstatus = 1;  k = 0;
+    } else {
+      kstatus = _validate_and_set(&k, aTHX_ svk, IFLAG_NONNEG);
+    }
+    if (items >= 3 && (svroot == 0 || !SvOK(svroot) || !SvROK(svroot) || SvTYPE(SvRV(svroot)) >= SVt_PVAV))
+      croak("is_power: third argument not a scalar reference");
+    if (nstatus != 0 && kstatus != 0) {
       if (k != 0) {
-        if (status == -1) {
+        if (nstatus == -1) {
           if (k % 2 == 0)  RETURN_NPARITY(0);  /* negative n even k return 0 */
           n = neg_iv(n);
         }
         ret = is_power_ret(n, k, &root);
       } else {  /* k = 0 */
-        if (status == -1)
+        if (nstatus == -1)
           n = neg_iv(n);
         /* Following Pari/GP:  ispower(0) = ispower(1) = ispower(-1) = 0 */
         ret = (n <= 1) ? 0 : powerof_ret(n, &root);
-        if (status == -1 && ret > 0 && ret % 2 == 0) {
+        if (nstatus == -1 && ret > 0 && ret % 2 == 0) {
           uint32_t v = valuation(ret,2);
           ret >>= v;
           if (ret == 1) ret = 0;
           if (ret) root = ipow(root,1U << v);
         }
       }
-      if (ret && svroot != 0) {
-        if (!SvROK(svroot)) croak("is_power: third argument not a scalar reference");
-        SETSVINT(SvRV(svroot), status == 1, root, -(IV)root);
-      }
+      if (ret && items >= 3)
+        SETSVINT(SvRV(svroot), nstatus == 1,
+                 k==1 ? n : root, k == 1 ? neg_iv(n) : -(IV)root);
       RETURN_NPARITY(ret);
     }
     DISPATCHPP_GMPONLYIF(svroot == 0);
@@ -2984,12 +2990,12 @@ is_prime_power(IN SV* svn, IN SV* svroot = 0)
     UV n, root;
   PPCODE:
     status = _validate_and_set(&n, aTHX_ svn, IFLAG_ANY);
+    if (items >= 2 && (svroot == 0 || !SvOK(svroot) || !SvROK(svroot) || SvTYPE(SvRV(svroot)) >= SVt_PVAV))
+      croak("is_prime_power: second argument not a scalar reference");
     if (status != 0) {
       ret = (status == 1)  ?  prime_power(n, &root)  :  0;
-      if (ret && svroot != 0) {
-        if (!SvROK(svroot))croak("is_prime_power: second argument not a scalar reference");
+      if (ret && items >= 2)
         sv_setuv(SvRV(svroot), root);
-      }
       RETURN_NPARITY(ret);
     }
     DISPATCHPP_GMPONLYIF(svroot == 0);
@@ -3001,10 +3007,9 @@ is_polygonal(IN SV* svn, IN UV k, IN SV* svroot = 0)
     UV n;
     int status;
   PPCODE:
-    if (svroot != 0 && !SvROK(svroot))
+    if (k < 3) croak("is_polygonal: k must be >= 3");
+    if (items >= 3 && (svroot == 0 || !SvOK(svroot) || !SvROK(svroot) || SvTYPE(SvRV(svroot)) >= SVt_PVAV))
       croak("is_polygonal: third argument not a scalar reference");
-    if (k < 3)
-      croak("is_polygonal: k must be >= 3");
 
     status = _validate_and_set(&n, aTHX_ svn, IFLAG_ANY);
     if (status == -1)
