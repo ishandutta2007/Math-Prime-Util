@@ -92,6 +92,7 @@ WriteMakefile1(
                       'Exporter'         => '5.57',
                       'XSLoader'         => '0.01',
                       'Carp'             => ($] < 5.008) ? '1.17' : 0,
+                      'Scalar::Util'     => '1.01',
                       'Tie::Array'       => 0,
                       'base'             => 0,
                       'constant'         => 0,

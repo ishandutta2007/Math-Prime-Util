@@ -2,6 +2,7 @@ package Math::Prime::Util::PP;
 use strict;
 use warnings;
 use Carp qw/carp croak confess/;
+use Scalar::Util qw/reftype/;
 
 BEGIN {
   $Math::Prime::Util::PP::AUTHORITY = 'cpan:DANAJ';
@@ -322,6 +323,11 @@ sub _validate_integer_abs {
     $_[0] =~ s/^-// if "$_[0]" < 0;
   }
   _validate_integer($_[0]);
+}
+
+sub _is_aref {
+  my $type = reftype($_[0]);
+  defined($type) && $type eq 'ARRAY';
 }
 
 sub _try_real_gmp_func {
@@ -5700,7 +5706,7 @@ sub chinese2 {
   my @items;
   foreach my $aref (@_) {
     croak "chinese arguments are two-element array references"
-      unless ref($aref) eq 'ARRAY' && scalar @$aref == 2;
+      unless _is_aref($aref) && scalar @$aref == 2;
     my($a,$n) = @$aref;
     validate_integer($a);
     validate_integer($n);
@@ -5774,7 +5780,7 @@ sub vecsum {
 }
 
 sub vecprefixsum {
-  my @v = (@_ == 1 && ref $_[0] eq 'ARRAY') ? @{$_[0]} : @_;
+  my @v = (@_ == 1 && _is_aref($_[0])) ? @{$_[0]} : @_;
   return unless @v;
   return maybetobigint($v[0]) if @v == 1;
 
@@ -5856,7 +5862,7 @@ sub vecmax {
 sub vecextract {
   my($aref, $mask) = @_;
 
-  return @$aref[@$mask] if ref($mask) eq 'ARRAY';
+  return @$aref[@$mask] if _is_aref($mask);
 
   # This is concise but very slow.
   # map { $aref->[$_] }  grep { $mask & (1 << $_) }  0 .. $#$aref;
@@ -5873,7 +5879,7 @@ sub vecextract {
 sub vecequal {
   my($aref, $bref) = @_;
   croak "vecequal element not scalar or array reference"
-    unless ref($aref) eq 'ARRAY' && ref($bref) eq 'ARRAY';
+    unless _is_aref($aref) && _is_aref($bref);
   return 0 unless $#$aref == $#$bref;
   my $i = 0;
   for my $av (@$aref) {
@@ -5881,8 +5887,8 @@ sub vecequal {
     next if !defined $av && !defined $bv;
     return 0 if !defined $av || !defined $bv;
     if (ref($av) || ref($bv)) {
-      my $av_is_array = ref($av) eq 'ARRAY';
-      my $bv_is_array = ref($bv) eq 'ARRAY';
+      my $av_is_array = _is_aref($av);
+      my $bv_is_array = _is_aref($bv);
       if ($av_is_array || $bv_is_array) {
         # arrayref + arrayref: recurse
         if ($av_is_array && $bv_is_array) {
@@ -7589,12 +7595,10 @@ sub fromdigits {
   croak "fromdigits: invalid base: $base" if $base < 2;  # large bases are ok
   my $refr = ref($r);
 
-  if ($refr && $refr !~ /^Math::/) {
-    croak "fromdigits: first argument must be a string or array reference"
-      unless $refr eq 'ARRAY';
-    # Math::BigInt->from_base_num is identical but slower
-    return _FastIntegerInput($r,$base);
-  }
+  return _FastIntegerInput($r,$base) if _is_aref($r);
+
+  croak "fromdigits: first argument must be a string or array reference"
+    if $refr && $refr !~ /^Math::/;
 
   my $n;
   $r =~ s/^0*//;
@@ -8817,7 +8821,8 @@ sub farey {
 sub next_farey {
   my($n,$frac) = @_;
   validate_integer_positive($n);
-  croak "next_farey second argument not an array reference" unless ref($frac) eq 'ARRAY';
+  croak "next_farey second argument not an array reference"
+    unless _is_aref($frac);
   my($p,$q) = @$frac;
   validate_integer_nonneg($p);
   validate_integer_positive($q);
@@ -8832,7 +8837,8 @@ sub next_farey {
 sub farey_rank {
   my($n,$frac) = @_;
   validate_integer_positive($n);
-  croak "next_farey second argument not an array reference" unless ref($frac) eq 'ARRAY';
+  croak "next_farey second argument not an array reference"
+    unless _is_aref($frac);
   my($p,$q) = @$frac;
   validate_integer_nonneg($p);
   validate_integer_positive($q);
@@ -12205,7 +12211,7 @@ sub forderange {
 sub forsetproduct {
   my($sub, @v) = @_;
   croak 'Not a subroutine reference' unless (ref($sub) || '') eq 'CODE';
-  croak 'Not an array reference' if grep {(ref($_) || '') ne 'ARRAY'} @v;
+  croak 'Not an array reference' if grep { !_is_aref($_) } @v;
   # Exit if no arrays or any are empty.
   return if scalar(@v) == 0 || grep { !@$_ } @v;
 
@@ -12267,7 +12273,7 @@ sub _multiset_permutations {
 sub formultiperm {
   my($sub, $iref) = @_;
   croak("formultiperm first argument must be an array reference")
-    unless ref($iref) eq 'ARRAY';
+    unless _is_aref($iref);
 
   my($sum, %h, @n) = (0);
   $h{$_}++ for @$iref;
@@ -12302,13 +12308,13 @@ sub numtoperm {
 
 sub permtonum {
   my($A) = @_;
-  croak "permtonum argument must be an array reference"
-    unless ref($A) eq 'ARRAY';
+  croak "permtonum argument must be an array reference" unless _is_aref($A);
   my $n = scalar(@$A);
   return 0 if $n == 0;
+  my @P = @$A;  # Copy so validate doesn't change their input
   {
     my %S;
-    for my $v (@$A) {
+    for my $v (@P) {
       validate_integer_nonneg($v);
       croak "permtonum: invalid permutation array" if $v >= $n || $S{$v}++;
     }
@@ -12318,7 +12324,7 @@ sub permtonum {
   for my $i (0 .. $n-2) {
     my $k = 0;
     for my $j ($i+1 .. $n-1) {
-      $k++ if $A->[$j] < $A->[$i];
+      $k++ if $P[$j] < $P[$i];
     }
     $rank = Mmuladdint($k,$f,$rank);
     $f = Mdivint($f, $n-$i-1);
@@ -12405,7 +12411,7 @@ sub vecsample ($@) {   ## no critic qw(ProhibitSubroutinePrototypes)
   return () if $k == 0 || @_ == 0;
 
   my $R = $_[0];
-  my $isarr = (@_ > 1 || !ref($R) || ref($R) ne 'ARRAY');
+  my $isarr = @_ > 1 || !ref($R) || !_is_aref($R);
   my $len = $isarr  ?  scalar(@_)  :  scalar(@$R);
   $k = $len if $k > $len;
 
@@ -12420,7 +12426,7 @@ sub vecsample ($@) {   ## no critic qw(ProhibitSubroutinePrototypes)
 sub vecsort {
   my(@s) = @_;
   # If we have a single array reference, unpack it.
-  @s = @{$s[0]} if scalar(@s) == 1 && (ref($s[0]) || '') eq 'ARRAY';
+  @s = @{$s[0]} if scalar(@s) == 1 && _is_aref($s[0]);
 
   # Validate and convert everything into a native int or bigint
   validate_integer($_) for @s;
@@ -12441,7 +12447,7 @@ sub vecsort {
 # In-place sort.
 sub vecsorti {
   my($r) = @_;
-  croak 'Not an array reference' unless (ref($r) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($r);
   validate_integer($_) for @$r;
   if ($] < 5.026) { @$r = sort { 0+($a<=>$b) } @$r; }
   else            { @$r = sort {    $a<=>$b  } @$r; }
@@ -12451,10 +12457,10 @@ sub vecsorti {
 sub setbinop (&$;$) {   ## no critic qw(ProhibitSubroutinePrototypes)
   my($sub, $ra, $rb) = @_;
   croak 'Not a subroutine reference' unless (ref($sub) || '') eq 'CODE';
-  croak 'Not an array reference' unless (ref($ra) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($ra);
   $ra = [@$ra];  # local copy
   if (defined $rb) {
-    croak 'Not an array reference' unless (ref($rb) || '') eq 'ARRAY';
+    croak 'Not an array reference' unless _is_aref($rb);
     $rb = [@$rb];  # local copy
   } else {
     $rb = $ra;
@@ -12480,9 +12486,9 @@ sub setbinop (&$;$) {   ## no critic qw(ProhibitSubroutinePrototypes)
 
 sub sumset {
   my($ra,$rb) = @_;
-  croak 'Not an array reference' unless (ref($ra) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($ra);
   if (defined $rb) {
-    croak 'Not an array reference' unless (ref($rb) || '') eq 'ARRAY';
+    croak 'Not an array reference' unless _is_aref($rb);
   } else {
     $rb = $ra;
   }
@@ -12572,16 +12578,14 @@ sub _merge_sets_inplace {
 }
 sub setunion {
   my($ra,$rb) = @_;
-  croak 'Not an array reference' unless (ref($ra) || '') eq 'ARRAY'
-                                     && (ref($rb) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($ra) && _is_aref($rb);
   # return toset(@$ra,@$rb);
   my(%seen,$k);
   Mtoset(grep { not $seen{$k = $_}++ } @$ra,@$rb);
 }
 sub setintersect {
   my($ra,$rb) = @_;
-  croak 'Not an array reference' unless (ref($ra) || '') eq 'ARRAY'
-                                     && (ref($rb) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($ra) && _is_aref($rb);
   ($ra,$rb) = ($rb,$ra) if scalar(@$ra) > scalar(@$rb);  # Performance
   return [] if scalar(@$ra) == 0;
   my %ina;
@@ -12590,8 +12594,7 @@ sub setintersect {
 }
 sub setminus {
   my($ra,$rb) = @_;
-  croak 'Not an array reference' unless (ref($ra) || '') eq 'ARRAY'
-                                     && (ref($rb) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($ra) && _is_aref($rb);
   return Mtoset(@$ra) if scalar(@$rb) == 0;
   my %inb;
   undef @inb{@$rb};
@@ -12599,8 +12602,7 @@ sub setminus {
 }
 sub setdelta {
   my($ra,$rb) = @_;
-  croak 'Not an array reference' unless (ref($ra) || '') eq 'ARRAY'
-                                     && (ref($rb) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($ra) && _is_aref($rb);
   return Mtoset(@$ra) if scalar(@$rb) == 0;
   return Mtoset(@$rb) if scalar(@$ra) == 0;
   my(%ina, %inb);
@@ -12614,7 +12616,7 @@ sub setdelta {
 # Can do setminus([$min..$max],\@L) albeit 2x slower
 sub _setcomplement {
   my($ra, $min, $max) = @_;
-  croak 'Not an array reference' unless (ref($ra) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($ra);
   validate_integer($min);
   validate_integer($max);
   my %ina;
@@ -12637,7 +12639,7 @@ sub _setcomplement {
 sub toset {
   my(@list) = @_;
   croak "toset: expected integer list, not array reference"
-    if @list == 1 && ref($list[0]) eq 'ARRAY';
+    if @list == 1 && _is_aref($list[0]);
   validate_integer($_) for @list;
   return \@list if scalar(@list) <= 1;
   my($k,%seen);
@@ -12648,9 +12650,9 @@ sub toset {
 # Is the second set a subset of the first set?
 sub setcontains {
   my $set = shift @_;
-  croak 'Not an array reference' unless (ref($set) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($set);
   my $iset;
-  if (@_ == 1 && ref($_[0]) eq 'ARRAY') {
+  if (@_ == 1 && _is_aref($_[0])) {
     $iset = $_[0];
   } else {
     $iset = Mtoset(@_);
@@ -12689,9 +12691,9 @@ sub setcontains {
 
 sub setcontainsany {
   my($set,@in) = @_;
-  croak 'Not an array reference' unless (ref($set) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($set);
   my $iset;
-  if (@in == 1 && ref($in[0]) eq 'ARRAY') {
+  if (@in == 1 && _is_aref($in[0])) {
     $iset = $in[0];
   } else {
     $iset = Mtoset(@in);
@@ -12734,9 +12736,9 @@ sub _setinsert1 {       # UNUSED
 
 sub setinsert {
   my($set, @in) = @_;
-  croak 'Not an array reference' unless (ref($set) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($set);
   my $iset;
-  if (@in == 1 && ref($in[0]) eq 'ARRAY') {
+  if (@in == 1 && _is_aref($in[0])) {
     $iset = [ @{$in[0]} ];
   } else {
     $iset = Mtoset(@in);
@@ -12822,9 +12824,9 @@ sub _setremove1 {
 
 sub setremove {
   my $set = shift;
-  croak 'Not an array reference' unless (ref($set) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($set);
   my $iset;
-  if (@_ == 1 && ref($_[0]) eq 'ARRAY') {
+  if (@_ == 1 && _is_aref($_[0])) {
     $iset = [ @{$_[0]} ];
   } else {
     $iset = Mtoset(@_);
@@ -12878,10 +12880,10 @@ sub _setinvert1 {
 
 sub setinvert {
   my($set, @in) = @_;
-  croak 'Not an array reference' unless (ref($set) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($set);
   return 0 if @in == 0;
   my $iset;
-  if (@in == 1 && ref($in[0]) eq 'ARRAY') {
+  if (@in == 1 && _is_aref($in[0])) {
     $iset = [ @{$in[0]} ];
   } else {
     $iset = Mtoset(@in);
@@ -12915,8 +12917,7 @@ sub setinvert {
 
 sub set_is_disjoint {
   my($s,$t) = @_;
-  croak 'Not an array reference' unless (ref($s) || '') eq 'ARRAY'
-                                     && (ref($t) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($s) && _is_aref($t);
   ($s,$t) = ($t,$s) if scalar(@$s) > scalar(@$t);
   return 1 if @$s == 0 || @$t == 0;
   my($k,%ins);
@@ -12926,8 +12927,7 @@ sub set_is_disjoint {
 }
 sub set_is_equal {
   my($s,$t) = @_;
-  croak 'Not an array reference' unless (ref($s) || '') eq 'ARRAY'
-                                     && (ref($t) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($s) && _is_aref($t);
   return 0 unless @$s == @$t;
   my %ins;
   $ins{$_} = 0 for @$s;
@@ -12940,8 +12940,7 @@ sub set_is_equal {
 }
 sub set_is_subset {
   my($s,$t) = @_;
-  croak 'Not an array reference' unless (ref($s) || '') eq 'ARRAY'
-                                     && (ref($t) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($s) && _is_aref($t);
   return 1 if @$t == 0;
   return 0 if @$s < @$t;
   my %ins;
@@ -12951,8 +12950,7 @@ sub set_is_subset {
 }
 sub set_is_proper_subset {
   my($s,$t) = @_;
-  croak 'Not an array reference' unless (ref($s) || '') eq 'ARRAY'
-                                     && (ref($t) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($s) && _is_aref($t);
   return 0 if @$s <= @$t;
   set_is_subset($s,$t);
 }
@@ -12964,8 +12962,7 @@ sub set_is_proper_superset {
 }
 sub set_is_proper_intersection {
   my($s,$t) = @_;
-  croak 'Not an array reference' unless (ref($s) || '') eq 'ARRAY'
-                                     && (ref($t) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($s) && _is_aref($t);
   my $minsize = (scalar(@$s) < scalar(@$t)) ? scalar(@$s) : scalar(@$t);
   my $intersize = scalar(@{Msetintersect($s,$t)});
   return ($intersize > 0 && $intersize < $minsize) ? 1 : 0;
@@ -12973,7 +12970,7 @@ sub set_is_proper_intersection {
 
 sub is_sidon_set {
   my($ra) = @_;
-  croak 'Not an array reference' unless (ref($ra) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($ra);
 
   my %sums;
   my @S = @{Mtoset(@$ra)};  # Validated, sorted, deduped.
@@ -12991,7 +12988,7 @@ sub is_sidon_set {
 
 sub is_sumfree_set {
   my($ra) = @_;
-  croak 'Not an array reference' unless (ref($ra) || '') eq 'ARRAY';
+  croak 'Not an array reference' unless _is_aref($ra);
 
   my %ina;
   my @S = @{Mtoset(@$ra)};  # Validated, sorted, deduped.
