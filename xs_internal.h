@@ -138,4 +138,6 @@ int array_to_int_array(pTHX_ size_t *retlen, UV** ret, bool want_sort, SV** svba
 bool arrayref_to_digit_array(pTHX_ size_t *retlen, UV** ret, SV* sva, int base);
 int _compare_array_refs(pTHX_ SV* a, SV* b);
 
+bool xs_is_sv_scalar_ref(SV *sv);
+
 #endif

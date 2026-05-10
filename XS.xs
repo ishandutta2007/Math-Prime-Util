@@ -2954,7 +2954,7 @@ is_power(IN SV* svn, IN SV* svk = 0, IN SV* svroot = 0)
     } else {
       kstatus = _validate_and_set(&k, aTHX_ svk, IFLAG_NONNEG);
     }
-    if (items >= 3 && (svroot == 0 || !SvOK(svroot) || !SvROK(svroot) || SvTYPE(SvRV(svroot)) >= SVt_PVAV))
+    if (items >= 3 && !xs_is_sv_scalar_ref(svroot))
       croak("is_power: third argument not a scalar reference");
     if (nstatus != 0 && kstatus != 0) {
       if (k != 0) {
@@ -2990,7 +2990,7 @@ is_prime_power(IN SV* svn, IN SV* svroot = 0)
     UV n, root;
   PPCODE:
     status = _validate_and_set(&n, aTHX_ svn, IFLAG_ANY);
-    if (items >= 2 && (svroot == 0 || !SvOK(svroot) || !SvROK(svroot) || SvTYPE(SvRV(svroot)) >= SVt_PVAV))
+    if (items >= 2 && !xs_is_sv_scalar_ref(svroot))
       croak("is_prime_power: second argument not a scalar reference");
     if (status != 0) {
       ret = (status == 1)  ?  prime_power(n, &root)  :  0;
@@ -3008,7 +3008,7 @@ is_polygonal(IN SV* svn, IN UV k, IN SV* svroot = 0)
     int status;
   PPCODE:
     if (k < 3) croak("is_polygonal: k must be >= 3");
-    if (items >= 3 && (svroot == 0 || !SvOK(svroot) || !SvROK(svroot) || SvTYPE(SvRV(svroot)) >= SVt_PVAV))
+    if (items >= 3 && !xs_is_sv_scalar_ref(svroot))
       croak("is_polygonal: third argument not a scalar reference");
 
     status = _validate_and_set(&n, aTHX_ svn, IFLAG_ANY);
@@ -4834,7 +4834,7 @@ void logint(IN SV* svn, IN UV k, IN SV* svret = 0)
   PPCODE:
     if (ix == 0 && k <= 1)  croak("logint: base must be > 1");
     if (ix == 1 && k <= 0)  croak("rootint: k must be > 0");
-    if (svret != 0 && !SvROK(svret))
+    if (items >= 3 && !xs_is_sv_scalar_ref(svret))
       croak("%s: third argument not a scalar reference",SUBNAME);
     if (_validate_and_set(&n, aTHX_ svn, ix == 0 ? IFLAG_POS : IFLAG_NONNEG)) {
       root = (ix == 0) ? logint(n, k) : rootint(n, k);

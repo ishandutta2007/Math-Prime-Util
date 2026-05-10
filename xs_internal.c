@@ -478,3 +478,8 @@ int _compare_array_refs(pTHX_ SV* a, SV* b)
   }
   return 1;
 }
+
+bool xs_is_sv_scalar_ref(SV *sv)
+{
+  return sv && SvOK(sv) && SvROK(sv) && SvTYPE(SvRV(sv)) <= SVt_PVMG;
+}
