@@ -2331,8 +2331,8 @@ miller_rabin_random(IN SV* svn, IN SV* svnbases = 0)
     UV n, nbases;
   PPCODE:
     nstatus = _validate_and_set(&n, aTHX_ svn, IFLAG_ANY);
-    if (items > 1) bstatus=_validate_and_set(&nbases,aTHX_ svnbases,IFLAG_POS);
-    else           { bstatus = 1;  nbases = 1; }
+    if (items < 2) { bstatus = 1;  nbases = 1; }
+    else           bstatus=_validate_and_set(&nbases,aTHX_ svnbases,IFLAG_POS);
     if (nstatus != 0 && bstatus != 0) {
       dMY_CXT;
       RETURN_NPARITY(nstatus == -1 ? 0 : is_mr_random(MY_CXT.randcxt,n,nbases));
@@ -2808,13 +2808,15 @@ void fibonacci(IN SV* svk)
     DISPATCHPP();
     XSRETURN(1);
 
-void is_sum_of_squares(IN SV* svn, IN UV k = 2)
+void is_sum_of_squares(IN SV* svn, IN SV* svk = 0)
   PREINIT:
-    int status, ret;
-    UV n;
+    int nstatus, kstatus, ret;
+    UV n, k;
   PPCODE:
-    status = _validate_and_set(&n, aTHX_ svn, IFLAG_ABS);
-    if (status != 0) {
+    nstatus = _validate_and_set(&n, aTHX_ svn, IFLAG_ABS);
+    if (items < 2) { kstatus = 1;  k = 2; }
+    else           { kstatus = _validate_and_set(&k, aTHX_ svk, IFLAG_NONNEG); }
+    if (nstatus != 0 && kstatus != 0) {
       switch (k) {
         case 0:  ret = (n==0);                     break;
         case 1:  ret = is_power(n,2);              break;

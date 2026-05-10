@@ -4079,9 +4079,10 @@ An optional second argument is the base C<base> which must be between 2 and 36.
 No prefix such as "0x" will be added, and all bases over 9 use lower case
 C<a> to C<z>.
 
-An optional third argument C<k> requires the result to be exactly C<k> digits.
-This truncates to the last C<k> digits if the result has C<k> or fewer digits,
-or zero extends if the result has more digits.
+An optional third argument C<k> specifies that the result should contain
+exactly C<k> digits.  If the full result has more than C<k> digits, only
+the last C<k> digits are returned; if it has fewer than C<k> digits,
+leading zeros will be added.
 
 This corresponds to Mathematica's C<IntegerString> function.
 

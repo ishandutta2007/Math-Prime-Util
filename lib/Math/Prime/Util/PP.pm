@@ -7277,8 +7277,7 @@ sub is_polygonal {
 sub is_sum_of_squares {
   my($n, $k) = @_;
   validate_integer_abs($n);
-  if (defined $k) { validate_integer_nonneg($k); }
-  else            { $k = 2; }
+  if (@_ < 2) { $k = 2; } else { validate_integer_nonneg($k); }
 
   return ($n == 0) ? 1 : 0 if $k == 0;
   return 1 if $k > 3;
@@ -7557,7 +7556,7 @@ sub todigitstring {
     $s = sprintf("%o",$n)  if $base ==  8;
     $s = sprintf("%x",$n)  if $base == 16;
     if (defined $len) {
-      $s = substr($s,0,$len);
+      $s = substr($s,-$len,$len);
       $s = '0' x ($len-length($s)) . $s if length($s) < $len;
     }
     return $s;
@@ -7583,7 +7582,7 @@ sub todigitstring {
     }
   }
   if (defined $len) {
-    $s = substr($s,0,$len);
+    $s = substr($s,-$len,$len);
     $s = '0' x ($len-length($s)) . $s if length($s) < $len;
   }
   return lc($s);
@@ -7675,6 +7674,7 @@ sub is_palindrome {
 
 sub _validate_zeckendorf {
   my($s) = @_;
+  croak "Parameter must be defined" if !defined $s;
   if ($s ne '0') {
     croak "fromzeckendorf: expected binary string"
       unless $s =~ /^1[01]*\z/;
