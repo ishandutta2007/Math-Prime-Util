@@ -74,7 +74,7 @@ plan tests => 0
             + 5  # is_power
             + 2*scalar(keys %powers) + scalar(@negpowers)
             + 13  # tests for 3,5,7 power
-            + 7  # is_power interface
+            + 12 # is_power/is_prime_power interface
             + 3  # is_square
             + 7  # is_sum_of_squares
             + 0;
@@ -166,6 +166,22 @@ is( is_power(-1,5), 1, "-1 is a 5th power" );
 
   eval { is_power(17, 2, []); 1 };
   like($@, qr/scalar reference/i, "is_power rejects array root reference for false result");
+
+  my $str = "abc";
+  eval { is_power(16, 2, \substr($str,0,1)); 1 };
+  like($@, qr/scalar reference/i, "is_power rejects lvalue root reference");
+
+  eval { is_power(16, 2, \*STDOUT); 1 };
+  like($@, qr/scalar reference/i, "is_power rejects glob root reference");
+
+  eval { is_prime_power(10, undef); 1 };
+  like($@, qr/scalar reference/i, "is_prime_power rejects undef root reference");
+
+  eval { is_prime_power(10, []); 1 };
+  like($@, qr/scalar reference/i, "is_prime_power rejects array root reference");
+
+  eval { is_prime_power(16, \substr($str,0,1)); 1 };
+  like($@, qr/scalar reference/i, "is_prime_power rejects lvalue root reference");
 }
 
 is( is_power(56129,3), 0, "56129 is not a 3rd power" );

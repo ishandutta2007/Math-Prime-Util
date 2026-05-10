@@ -53,7 +53,7 @@ my @rootints = (
   ["18446744039349813264", 39, 3],
 );
 
-plan tests => 2 + 3 + 2 + 2;
+plan tests => 2 + 3 + 3 + 2 + 2;
 
 ok(!defined eval { rootint(377,0);  }, "rootint(n,0) gives error");
 ok(!defined eval { rootint(-377,2); }, "rootint(-n,k) gives error");
@@ -61,6 +61,17 @@ ok(!defined eval { rootint(-377,2); }, "rootint(-n,k) gives error");
 is(rootint(928342398,1), 928342398, "rootint(928342398,1) returns 928342398");
 is(rootint(88875,3), 44, "rootint(88875,3) returns 44");
 is(rootint("266667176579895999",3), 643659, "integer third root of 266667176579895999 is 643659");
+{
+  eval { rootint(16, 2, undef); 1 };
+  like($@, qr/scalar reference/i, "rootint rejects undef power reference");
+
+  eval { rootint(16, 2, []); 1 };
+  like($@, qr/scalar reference/i, "rootint rejects array power reference");
+
+  my $str = "abc";
+  eval { rootint(16, 2, \substr($str,0,1)); 1 };
+  like($@, qr/scalar reference/i, "rootint rejects lvalue power reference");
+}
 {
   my(@got, @expected);
   for my $arr (@roots) {
