@@ -378,10 +378,14 @@ sub entropy_bytes {
 *vecuniq = \&Math::Prime::Util::PP::vecuniq;
 *vecfreq = \&Math::Prime::Util::PP::vecfreq;
 *vecsingleton = \&Math::Prime::Util::PP::vecsingleton;
+*vecprefixsum = \&Math::Prime::Util::PP::vecprefixsum;
 *vecwindow = \&Math::Prime::Util::PP::vecwindow;
 *vecsample = \&Math::Prime::Util::PP::vecsample;
 *vecsort = \&Math::Prime::Util::PP::vecsort;
 *vecsorti = \&Math::Prime::Util::PP::vecsorti;
+*vecmex = \&Math::Prime::Util::PP::vecmex;
+*vecpmex = \&Math::Prime::Util::PP::vecpmex;
+*vecextract = \&Math::Prime::Util::PP::vecextract;
 *setbinop = \&Math::Prime::Util::PP::setbinop;
 *sumset = \&Math::Prime::Util::PP::sumset;
 *setunion = \&Math::Prime::Util::PP::setunion;
@@ -505,11 +509,6 @@ sub vecprod {
   _validate_integer($_) for @v;
   return Math::Prime::Util::PP::vecprod(@v);
 }
-sub vecprefixsum {
-  my @v = (@_ == 1 && ref $_[0] eq 'ARRAY') ? @{$_[0]} : @_;
-  _validate_integer($_) for @v;
-  return Math::Prime::Util::PP::vecprefixsum(@v);
-}
 sub vecmin {
   my(@v) = @_;
   _validate_integer($_) for @v;
@@ -519,19 +518,6 @@ sub vecmax {
   my(@v) = @_;
   _validate_integer($_) for @v;
   return Math::Prime::Util::PP::vecmax(@v);
-}
-sub vecmex {
-  my(@v) = @_;
-  _validate_integer_nonneg($_) for @v;
-  return Math::Prime::Util::PP::vecmex(@v);
-}
-sub vecpmex {
-  my(@v) = @_;
-  for (@v) {
-    _validate_integer_nonneg($_);
-    croak "parameter must be a positive integer (x > 0)" if $_ <= 0;
-  }
-  return Math::Prime::Util::PP::vecpmex(@v);
 }
 sub invmod {
   my ($a, $n) = @_;
@@ -696,18 +682,6 @@ sub vecfirstidx (&@) {     ## no critic qw(ProhibitSubroutinePrototypes)
   my $i = 0;
   ++$i and $sub->() and return $i-1 foreach @_;
   -1;
-}
-
-sub vecextract {
-  my($aref, $mask) = @_;
-  croak "vecextract first argument must be an array reference"
-    unless ref($aref) eq 'ARRAY';
-  if (ref($mask) eq 'ARRAY') {
-    _validate_integer($_) for @$mask;
-  } else {
-    _validate_integer_nonneg($mask);
-  }
-  return Math::Prime::Util::PP::vecextract(@_);
 }
 
 1;

@@ -5782,13 +5782,17 @@ sub vecsum {
 sub vecprefixsum {
   my @v = (@_ == 1 && _is_aref($_[0])) ? @{$_[0]} : @_;
   return unless @v;
-  return maybetobigint($v[0]) if @v == 1;
+  if (@v == 1) {
+    validate_integer($v[0]);
+    return maybetobigint($v[0]);
+  }
 
   my @psum;
   my $sum = 0;
-  if (OLD_PERL_VERSION) { $_="$_" for @v };
+  if (OLD_PERL_VERSION) { $_="$_" for @v };  # TODO: still needed?
 
   foreach my $v (@v) {
+    validate_integer($v);
     $sum = tobigint($sum)
       if !ref $sum && ($sum+$v > (INTMAX-513) || $sum+$v < (INTMIN+513));
     push @psum, $sum += $v;
@@ -5861,8 +5865,14 @@ sub vecmax {
 
 sub vecextract {
   my($aref, $mask) = @_;
+  croak "vecextract first argument must be an array reference"
+    unless _is_aref($aref);
 
-  return @$aref[@$mask] if _is_aref($mask);
+  if (_is_aref($mask)) {
+    validate_integer($_) for @$mask;
+    return @$aref[@$mask];
+  }
+  validate_integer_nonneg($mask);
 
   # This is concise but very slow.
   # map { $aref->[$_] }  grep { $mask & (1 << $_) }  0 .. $#$aref;
@@ -5914,10 +5924,12 @@ sub vecequal {
 }
 
 sub vecmex {
-  my $items = scalar(@_);
+  my(@v) = @_;
+  my $items = scalar(@v);
   my @seen;
-  for (@_) {
-    $seen[$_] = 0 if $_ < $items;
+  for my $v (@v) {
+    validate_integer_nonneg($v);
+    $seen[$v] = 0 if $v < $items;
   }
   for (0 .. $items-1) {
     return $_ unless defined $seen[$_];
@@ -5926,10 +5938,12 @@ sub vecmex {
 }
 
 sub vecpmex {
-  my $items = scalar(@_);
+  my(@v) = @_;
+  my $items = scalar(@v);
   my @seen;
-  for (@_) {
-    $seen[$_] = 0 if $_ <= $items;
+  for my $v (@v) {
+    validate_integer_positive($v);
+    $seen[$v] = 0 if $v <= $items;
   }
   for (1 .. $items) {
     return $_ unless defined $seen[$_];
