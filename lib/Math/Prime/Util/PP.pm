@@ -2,7 +2,7 @@ package Math::Prime::Util::PP;
 use strict;
 use warnings;
 use Carp qw/carp croak confess/;
-use Scalar::Util qw/reftype/;
+use Scalar::Util qw/looks_like_number reftype/;
 
 BEGIN {
   $Math::Prime::Util::PP::AUTHORITY = 'cpan:DANAJ';
@@ -8026,7 +8026,7 @@ sub is_pseudoprime {
   validate_integer($n);
   return 0 if $n < 0;
   @bases = (2) if scalar(@bases) == 0;
-  return 0+($n >= 2) if $n < 3;
+  return 0+($n >= 2) if $n < 4;
 
   foreach my $a (@bases) {
     validate_integer_nonneg($a);
@@ -8042,7 +8042,7 @@ sub is_euler_pseudoprime {
   validate_integer($n);
   return 0 if $n < 0;
   @bases = (2) if scalar(@bases) == 0;
-  return 0+($n >= 2) if $n < 3;
+  return 0+($n >= 2) if $n < 4;
   return 0 if ($n % 2) == 0;
 
   foreach my $a (@bases) {
@@ -8063,6 +8063,7 @@ sub is_euler_plumb_pseudoprime {
   return 0 if $n < 0;
   return 0+($n >= 2) if $n < 4;
   return 0 if ($n % 2) == 0;
+
   my $nmod8 = $n % 8;
   my $exp = 1 + ($nmod8 == 1);
   my $ap = Mpowmod(2, ($n-1) >> $exp, $n);
@@ -8683,9 +8684,13 @@ sub convergents {
 sub bestrational {
   my($x, $dbound) = @_;
   validate_integer_positive($dbound);
+  croak "bestrational: first argument must be numeric"
+    if !defined $x || (!ref($x) && !looks_like_number($x));
 
   # In case they gave us a bigint
-  if (ref($x) && ref($x) ne 'Math::BigFloat') {
+  if (ref($x) eq 'Math::BigFloat') {
+    $x = $x->copy;
+  } elsif (ref($x)) {
     $x = $x <= INTMAX && $x >= INTMIN ? _bigint_to_int($x)
                                       : _upgrade_to_float("$x");
   }
@@ -8748,13 +8753,14 @@ sub next_calkin_wilf {
   my($num,$den) = @_;
   validate_integer_positive($num);
   validate_integer_positive($den);
-  # Check gcd to ensure a valid CW entry?
+  croak "next_calkin_wilf: rational must be reduced" if Mgcd($num,$den) != 1;
   ($den, Mvecprod(2,$den,Mdivint($num,$den)) + $den - $num);
 }
 sub next_stern_brocot {
   my($num,$den) = @_;
   validate_integer_positive($num);
   validate_integer_positive($den);
+  croak "next_stern_brocot: rational must be reduced" if Mgcd($num,$den) != 1;
   # There should be a better solution
   nth_stern_brocot(Madd1int(stern_brocot_n($num,$den)));
 }
@@ -8847,6 +8853,8 @@ sub next_farey {
   validate_integer_positive($n);
   croak "next_farey second argument not an array reference"
     unless _is_aref($frac);
+  croak "next_farey: expected 2-element array reference"
+    unless @$frac == 2;
   my($p,$q) = @$frac;
   validate_integer_nonneg($p);
   validate_integer_positive($q);
@@ -8861,13 +8869,19 @@ sub next_farey {
 sub farey_rank {
   my($n,$frac) = @_;
   validate_integer_positive($n);
-  croak "next_farey second argument not an array reference"
+  croak "farey_rank second argument not an array reference"
     unless _is_aref($frac);
+  croak "farey_rank: expected 2-element array reference"
+    unless @$frac == 2;
   my($p,$q) = @$frac;
   validate_integer_nonneg($p);
   validate_integer_positive($q);
 
   return 0 if $p == 0;
+  if ($p >= $q) {
+    my $len = Madd1int(Math::Prime::Util::sumtotient($n));
+    return ($p == $q) ? Msub1int($len) : $len;
+  }
 
   my $g = Mgcd($p,$q);
   ($p,$q) = (Mdivint($p,$g),Mdivint($q,$g)) if $g != 1;

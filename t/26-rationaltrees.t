@@ -35,6 +35,8 @@ subtest 'Calkin-Wilf tree' => sub {
   my @s=([1,1]);
   push @s, [next_calkin_wilf($s[-1]->[0],$s[-1]->[1])] for 1..99;
   is_deeply( \@s, \@CW, "next_calkin_wilf first 100 terms" );
+  ok( !eval { next_calkin_wilf(2,4); 1 } && $@ =~ /rational must be reduced/,
+      "next_calkin_wilf requires reduced input" );
 
   # calkin_wilf_n: index of first 100 terms
   my @idx;
@@ -186,7 +188,12 @@ subtest 'Farey sequences' => sub {
   is_deeply( [farey(1)], [[0,1],[1,1]], "farey(1)" );
   is( farey_rank(5,[0,1]), 0, "farey_rank(5,[0,1]) = 0" );
   is( farey_rank(5,[1,1]), 10, "farey_rank(5,[1,1]) = last" );
+  is( farey_rank(5,[2,1]), 11, "farey_rank(5,[2,1]) = length" );
   ok( !defined(next_farey(5,[1,1])), "next_farey(5,[1,1]) = undef" );
+  ok( !eval { next_farey(5,[1]); 1 } && $@ =~ /expected 2-element array reference/,
+      "next_farey rejects short fraction array" );
+  ok( !eval { farey_rank(5,[1,2,3]); 1 } && $@ =~ /expected 2-element array reference/,
+      "farey_rank rejects long fraction array" );
 };
 
 if ($extended) {

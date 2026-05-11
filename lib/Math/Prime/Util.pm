@@ -2092,13 +2092,14 @@ A fast upper limit on the Nth Ramanujan prime.
 
 =head2 is_pseudoprime
 
-Given an integer C<n> and zero or more positive bases,
+Given an integer C<n> and zero or more integer bases C<< base >= 2 >>,
 returns 1 if C<n> is positive and a probable prime to each base,
 and returns 0 otherwise.
 This is the simple Fermat primality test.
 Removing primes, given base 2 this produces the sequence L<OEIS A001567|http://oeis.org/A001567>.
 
 If no bases are given, base 2 is used.  All bases must be 2 or greater.
+The bases will be used modulo C<n>.  The bases are only validated when used.
 
 For practical use, L</is_strong_pseudoprime> is a much stronger test with
 similar or better performance.
@@ -2117,6 +2118,7 @@ This is the Euler test, sometimes called the Euler-Jacobi test.
 Removing primes, given base 2 this produces the sequence L<OEIS A047713|http://oeis.org/A047713>.
 
 If no bases are given, base 2 is used.  All bases must be 2 or greater.
+The bases will be used modulo C<n>.  The bases are only validated when used.
 
 If 0 is returned, then the number really is a composite (for bases less than n).
 If 1 is returned, then it is either a prime or an Euler pseudoprime to all the given bases.
@@ -2139,6 +2141,7 @@ returns 1 if C<n> is positive and a strong probable prime to each base,
 and returns 0 otherwise.
 
 If no bases are given, base 2 is used.  All bases must be 2 or greater.
+The bases will be used modulo C<n>.  The bases are only validated when used.
 
 If 0 is returned, then the number really is a composite (for any base).
 If 1 is returned, then it is either a prime or a strong pseudoprime to all the given bases.
@@ -4523,9 +4526,9 @@ traversal of the Stern-Brocot tree of rationals as a two-element list.
 The Stern-Brocot tree has an entry for all positive rationals in lowest
 form, with each one appearing only once.
 Read left-to-right on each row, the numbers appear in ascending order.
-It is a binary search tree over the positive rationals (this was exactly
-Brocot's motivation).
-It is not as efficient as L</next_calkin_wilf>.
+It can be seen as a binary search tree over the positive rationals
+(this was exactly Brocot's motivation).
+The implementation is not as efficient as L</next_calkin_wilf>.
 
 This produces L<OEIS series A007305|http://oeis.org/A007305> (numerators)
 and L<OEIS series A047679|http://oeis.org/A047679> (denominators).

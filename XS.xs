@@ -2193,9 +2193,9 @@ void is_pseudoprime(IN SV* svn, ...)
   PPCODE:
     status = _validate_and_set(&n, aTHX_ svn, IFLAG_ANY);
     if (status == 1) {
-      if (n < 3) {
-        ret = (n == 2);
-      } else if (ix == 2 && !(n&1)) {
+      if (n < 4) {
+        ret = (n >= 2);
+      } else if (ix >= 1 && !(n&1)) {
         ret = 0;
       } else if (items == 1) {
         ret = (ix == 0) ? is_pseudoprime(n, 2) :
@@ -2205,6 +2205,7 @@ void is_pseudoprime(IN SV* svn, ...)
         for (i = 1, ret = 1;  i < items && ret == 1; i++) {
           status = _validate_and_set(&base, aTHX_ ST(i), IFLAG_NONNEG);
           if (status != 1) break;
+          if (base < 2) croak("%s: invalid base: %"UVuf, SUBNAME, base);
           ret = (ix == 0) ? is_pseudoprime(n, base) :
                 (ix == 1) ? is_euler_pseudoprime(n, base) :
                             is_strong_pseudoprime(n, base);
@@ -3551,7 +3552,9 @@ void bestrational(IN SV* svx, IN SV* svdbound)
     UV dbound, P, Q;
   PPCODE:
     if (_validate_and_set(&dbound, aTHX_ svdbound, IFLAG_POS) &&
-        !sv_isobject(svx)) {
+        SvOK(svx) &&
+        !sv_isobject(svx) &&
+        looks_like_number(svx)) {
       NV x = SvNV(svx);
       if (bestrational(&P, &Q, x, dbound)) {
         if (x >= 0.0) {
@@ -3577,6 +3580,8 @@ void next_calkin_wilf(IN SV* svnum, IN SV* svden)
     int status;
   PPCODE:
     if (_validate_and_set(&num, aTHX_ svnum, IFLAG_POS) && _validate_and_set(&den, aTHX_ svden, IFLAG_POS)) {
+      if (gcd_ui(num, den) != 1)
+        croak("%s: rational must be reduced", SUBNAME);
       switch (ix) {
         case 0:  status = next_calkin_wilf(&num, &den);  break;
         case 1:  status = next_stern_brocot(&num, &den); break;

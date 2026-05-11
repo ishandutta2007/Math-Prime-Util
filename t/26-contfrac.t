@@ -188,6 +188,8 @@ subtest 'bestrational' => sub {
   # Negative
   is_deeply( [bestrational(-0.5, 10)], [-1, 2], "bestrational(-0.5,10)" );
   is_deeply( [bestrational(-2.5, 10)], [-5, 2], "bestrational(-2.5,10)" );
+  ok( !eval { bestrational("abc", 10); 1 } && $@ =~ /first argument must be numeric/,
+      "bestrational rejects nonnumeric string" );
 
   # Pi approximations with increasing dbound
   # dbound=5:   best is 16/5 (semiconvergent; rem<1/dbound but loop must still run)
@@ -211,8 +213,10 @@ subtest 'bestrational' => sub {
     do { require Math::BigFloat; Math::BigFloat->import(); }
       unless defined $Math::BigFloat::VERSION;
     my $bf = Math::BigFloat->new("3.14159265358979323846");
+    my $acc = $bf->accuracy;
     my($p,$q) = bestrational($bf, 1000);
     is_deeply( [$p,$q], [355,113],
                "bestrational(BigFloat pi, 1000) = 355/113" );
+    is( $bf->accuracy, $acc, "bestrational does not mutate BigFloat accuracy" );
   }
 };
