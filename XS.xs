@@ -742,22 +742,32 @@ static OP* xop_call_checker_exact_arity(pTHX_ OP *entersubop, GV *namegv, SV *ck
   return newop;
 }
 
-static OP* xop_dispatch_binary_canonical(pTHX_ const char* name, int minversion) {
+/* This is for xop GMP calls that return one bigint-like scalar.
+ * All current xops follow this pattern, but be careful when adding later. */
+static void xop_canonicalize_result(pTHX) {
   dSP;
-  SV* out;
-  PUTBACK;
-  (void)_vcallsubn(aTHX_ G_SCALAR, VCALL_PP|VCALL_GMP, name, 2, minversion, NULL);
-  SPAGAIN;
-  out = xs_to_canonical(aTHX_ TOPs);
+  SV* out = xs_to_canonical(aTHX_ TOPs);
   SPAGAIN;
   SETs(out);
+  PUTBACK;
+}
+
+static OP* xop_dispatch_binary(pTHX_ const char* name, int minversion) {
+  dSP;
+  vcall_used_t used = VCALL_USED_NONE;
+  PUTBACK;
+  (void)_vcallsubn(aTHX_ G_SCALAR, VCALL_PP|VCALL_GMP, name, 2, minversion, &used);
+  if (used == VCALL_USED_GMP) xop_canonicalize_result(aTHX);
+  SPAGAIN;
   RETURN;
 }
 
 static OP* xop_dispatch_unary(pTHX_ const char* name, int minversion) {
   dSP;
+  vcall_used_t used = VCALL_USED_NONE;
   PUTBACK;
-  (void)_vcallsubn(aTHX_ G_SCALAR, VCALL_PP|VCALL_GMP, name, 1, minversion, NULL);
+  (void)_vcallsubn(aTHX_ G_SCALAR, VCALL_PP|VCALL_GMP, name, 1, minversion, &used);
+  if (used == VCALL_USED_GMP) xop_canonicalize_result(aTHX);
   SPAGAIN;
   RETURN;
 }
@@ -832,7 +842,7 @@ static OP* pp_addint_custom_common(pTHX_ int opix, const char *opname, int minve
     RETURN;
   }
 
-  return xop_dispatch_binary_canonical(aTHX_ opname, minversion);
+  return xop_dispatch_binary(aTHX_ opname, minversion);
 }
 
 static OP* pp_addint_custom(pTHX)  { return pp_addint_custom_common(aTHX_ 0, "addint", 52); }
