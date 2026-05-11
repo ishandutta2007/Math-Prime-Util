@@ -9,13 +9,15 @@ my $extra = defined $ENV{EXTENDED_TESTING} && $ENV{EXTENDED_TESTING};
 my $usexs = Math::Prime::Util::prime_get_config->{'xs'};
 my $use64 = Math::Prime::Util::prime_get_config->{'maxbits'} > 32;
 
-plan tests => 9;
+plan tests => 10;
 
 {
   my @result = map { my $m=$_; map { factorialmod($_,$m) } 0..$m-1; } 1 .. 40;
   my @expect = map { my $m=$_; map { "".(factorial($_) % $m); } 0..$m-1; } 1 .. 40;
   is_deeply( \@result, \@expect, "factorialmod n! mod m for m 1 to 50, n 0 to m" );
 }
+
+is( factorialmod(5,0), undef, "factorialmod returns undef for modulus 0" );
 
 SKIP: {
   skip "medium size factorialmods in PP",2 unless $usexs || $extra;

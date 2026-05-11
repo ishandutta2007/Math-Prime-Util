@@ -3,11 +3,11 @@ use strict;
 use warnings;
 
 use Test::More;
-use Math::Prime::Util qw/integer_complexity/;
+use Math::Prime::Util qw/integer_complexity powint/;
 
 my $extra = defined $ENV{EXTENDED_TESTING} && $ENV{EXTENDED_TESTING};
 
-plan tests => 4;
+plan tests => 5;
 
 subtest 'small values', sub {
   # f(n) = min ones to represent n using + and *
@@ -45,4 +45,12 @@ subtest 'selected values', sub {
     is(integer_complexity(2**20), 40, "f(2^20) = 40 (above cache)");
     is(integer_complexity(3**12), 36, "f(3^12) = 36 (above cache)");
   }
+};
+
+subtest 'input limits', sub {
+  plan skip_all => "large input limit test only with EXTENDED_TESTING" unless $extra;
+  my $too_big = powint(2,80);
+  my $ret = eval { integer_complexity($too_big) };
+  like($@, qr/native signed integer/, "reject values larger than signed native integer");
+  is($ret, undef, "large rejected value returns no result");
 };

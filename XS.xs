@@ -5185,10 +5185,9 @@ void factorial(IN SV* svn)
     subfactorial = 1
     bell_number = 2
     fubini = 3
-    integer_complexity = 4
-    primorial = 5
-    pn_primorial = 6
-    catalan_number = 7
+    primorial = 4
+    pn_primorial = 5
+    catalan_number = 6
   PREINIT:
     UV n, r;
   PPCODE:
@@ -5199,17 +5198,27 @@ void factorial(IN SV* svn)
         case 1:  r = subfactorial(n);   break;
         case 2:  r = bell_number(n);    break;
         case 3:  r = fubini(n);         break;
-        case 4:  r = integer_complexity(n); break;
-        case 5:  r = primorial(n);      break;
-        case 6:  r = pn_primorial(n);   break;
-        case 7:  r = catalan_number(n); break;
+        case 4:  r = primorial(n);      break;
+        case 5:  r = pn_primorial(n);   break;
+        case 6:  r = catalan_number(n); break;
         default: break;
       }
-      if (n == 0 && ix == 4) XSRETURN_UNDEF;
       if (n == 0 || r > 0) XSRETURN_UV(r);
     }
     DISPATCHPP();
     RETURN_SV_CANONICAL(ST(0));
+
+void integer_complexity(IN SV* svn)
+  PREINIT:
+    int nstatus;
+    UV n, r;
+  PPCODE:
+    nstatus = _validate_and_set(&n, aTHX_ svn, IFLAG_NONNEG);
+    if (nstatus == 0 || n > (UV)IV_MAX)
+      croak("integer_complexity: n must fit in native signed integer");
+    r = integer_complexity(n);  /* Make sure to call it even if n=0 */
+    if (n == 0) XSRETURN_UNDEF;
+    XSRETURN_UV(r);
 
 void sumtotient(IN SV* svn)
   PREINIT:

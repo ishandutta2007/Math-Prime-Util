@@ -27,8 +27,10 @@ my @tests = (
 
   [-112,5,351, 313],
   [-189,34,877, 141],
+  [-5,-9,11, 4],
   [-23,-29,377, 117],
 
+  [-5,-1,11, 0],
   [189,-34,877, 0],
 );
 
@@ -66,6 +68,7 @@ plan tests => 1
             + scalar(@tests)
             + scalar(@pp_cases)
             + 1
+            + 1
             ;
 
 for my $data (@tests) {
@@ -73,6 +76,8 @@ for my $data (@tests) {
   is( binomialmod($n,$k,$m), $exp, "binomialmod($n,$k,$m) = $exp" );
   #is( modint(binomial($n,$k),$m), $exp, "binomial($n,$k) mod $m = $exp" );
 }
+
+is( binomialmod(5,2,0), undef, "binomialmod returns undef for modulus 0" );
 
 {
   my $sum = 0;

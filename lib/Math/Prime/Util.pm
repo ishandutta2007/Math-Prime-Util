@@ -5618,6 +5618,10 @@ value (or if values are requested in decreasing order), as the cache is
 built incrementally.
 Calling C<integer_complexity(0)> will flush the cache.
 
+C<n> must fit in a signed native integer.  The implementation caches all
+values up to the requested index, so practical limits are usually much
+lower and depend on available memory.
+
 This is the L<OEIS series A005245|http://oeis.org/A005245>.
 
 =head2 factorial
@@ -6022,6 +6026,8 @@ used in FLINT is the fastest known implementation.
 This becomes noticeable for C<< n > 10^8 >> or so,
 and the O(n^.5) versus O(n) complexity is very apparent with large C<n>.
 
+Like other mod functions, C<undef> is returned when C<m=0>.
+
 =head2 binomialmod
 
 Given integer arguments C<n>, C<k>, and C<m>, returns C<binomial(n,k) mod |m|>.
@@ -6029,8 +6035,9 @@ This is much faster than computing the large C<binomial(n,k)> followed
 by a mod operation.
 
 C<|m|> does not need to be prime.
-The result is extended to negative C<n>.
-Negative C<k> will return zero.
+Negative arguments follow the same Kronenburg extensions as L</binomial>.
+In particular, negative C<k> returns zero except when C<< n < 0, k <= n >>.
+Like other mod functions, C<undef> is returned when C<m=0>.
 
 This corresponds to Mathematica's C<BinomialMod[n,m,p]> function.  It has
 similar functionality to Max Alekseyev's C<binomod.gp> Pari routine.

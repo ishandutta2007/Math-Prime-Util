@@ -8597,6 +8597,8 @@ sub _expand_A005245 {  # Based on Martin N. Fuller's code from OEIS.
 sub integer_complexity {
   my($n) = @_;
   validate_integer_nonneg($n);
+  croak "integer_complexity: n must fit in native signed integer"
+    if $n > SINTMAX;
   if ($n == 0) {  # clear the cache in addition to returning undef
     @_A000792=(); @_A005245=(0,1,2,3);
     return undef;
