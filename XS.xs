@@ -286,15 +286,16 @@ static const gmp_info_t gmp_info[] = {
   {             "random_prime", 44, 1, R_BIGINT },
   {        "random_safe_prime", 52, 1, R_BIGINT },
 
-  {              "sieve_range", 36, 0xFF, R_BIGINT }, /* needs objectify */
-  {      "sieve_prime_cluster", 34, 0xFF, R_BIGINT }, /* needs objectify */
-  {                 "divisors", 53, 0xFF, R_BIGINT }, /* needs objectify */
-#if 0
-  {                   "primes",  4, 1, R_AREF }, /* objectify ARREF */
-#endif
+  {              "sieve_range", 36, 0xFF, R_BIGINT },
+  {      "sieve_prime_cluster", 34, 0xFF, R_BIGINT },
+  {                 "divisors", 53, 0xFF, R_BIGINT },
+  {                   "factor", 41, 0xFF, R_BIGINT },
 
   {                "numtoperm", 47, 0xFF, R_NATIVE },
   {                 "todigits", 41, 0xFF, R_NATIVE },
+#if 0
+  {                   "primes",  4, 1, R_AREF }, /* objectify ARREF */
+#endif
 
   {           "powerful_count", 53, 1, R_BIGINT },
   {          "powerfree_count", 53, 1, R_BIGINT },
@@ -315,10 +316,7 @@ static const gmp_info_t gmp_info[] = {
 
   /* if the input is already a bigint type, we want to use that */
   /* {                "factorial", 24, 1, R_BIGINT }, */
-#if 0 /* need to objectify a return list */
-  {                   "factor", 41, 0xFF, R_BIGINT },
-#endif
-#if 0 /* objectify list, and the API isn't identical */
+#if 0 /* the APIs are not identical */
   {             "trial_factor", 47, 0xFF, R_BIGINT },
   {              "holf_factor", 47, 0xFF, R_BIGINT },
   {            "squfof_factor", 47, 0xFF, R_BIGINT },
