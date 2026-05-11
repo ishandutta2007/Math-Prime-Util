@@ -190,6 +190,14 @@ subtest 'Farey sequences' => sub {
   is( farey_rank(5,[1,1]), 10, "farey_rank(5,[1,1]) = last" );
   is( farey_rank(5,[2,1]), 11, "farey_rank(5,[2,1]) = length" );
   ok( !defined(next_farey(5,[1,1])), "next_farey(5,[1,1]) = undef" );
+  is_deeply( next_farey(1,[1,3]), [1,1],
+             "next_farey handles non-entry fraction in F_1" );
+  is_deeply( next_farey(5,[1,8]), [1,5],
+             "next_farey handles small non-entry fraction" );
+  is_deeply( next_farey(5,[5,12]), [1,2],
+             "next_farey handles interior non-entry fraction" );
+  is_deeply( next_farey(5,[2,4]), [3,5],
+             "next_farey handles unreduced entry fraction" );
   ok( !eval { next_farey(5,[1]); 1 } && $@ =~ /expected 2-element array reference/,
       "next_farey rejects short fraction array" );
   ok( !eval { farey_rank(5,[1,2,3]); 1 } && $@ =~ /expected 2-element array reference/,

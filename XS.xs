@@ -3556,7 +3556,7 @@ void bestrational(IN SV* svx, IN SV* svdbound)
         !sv_isobject(svx) &&
         looks_like_number(svx)) {
       NV x = SvNV(svx);
-      if (bestrational(&P, &Q, x, dbound)) {
+      if (Perl_isfinite(x) && bestrational(&P, &Q, x, dbound)) {
         if (x >= 0.0) {
           XPUSHs(sv_2mortal(newSVuv(P)));
           XPUSHs(sv_2mortal(newSVuv(Q)));
@@ -3692,7 +3692,7 @@ void next_farey(IN SV* svn, IN SV* svfrac)
     AV* av;
     UV n, p64, q64;
     uint32_t p, q;
-    int status;
+    int status, nret;
   PPCODE:
     if (_validate_and_set(&n, aTHX_ svn, IFLAG_POS) &&
         n <= UVCONST(4294967295)) {
@@ -3712,6 +3712,12 @@ void next_farey(IN SV* svn, IN SV* svfrac)
         if (ix == 0) XSRETURN_UNDEF;
         else         XSRETURN_UV(farey_length(n) - (p64 == q64));
       }
+      if (status != 0 && ix == 0) {
+        UV g = gcd_ui(p64,q64);
+        if (g != 1) { p64 /= g;  q64 /= g; }
+        if (q64 > n)
+          status = 0;  /* Use PP rank/select for non-entry fractions. */
+      }
       if (status != 0) {
         p = p64;  q = q64;
         if (p != p64 || q != q64)
@@ -3729,8 +3735,9 @@ void next_farey(IN SV* svn, IN SV* svfrac)
         }
       }
     }
-    DISPATCHPP();
-    XSRETURN(1);
+    nret = DISPATCHPP();
+    SPAGAIN;
+    XSRETURN(nret);
 
 
 

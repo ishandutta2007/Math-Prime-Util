@@ -4487,7 +4487,7 @@ all successive values must be positive integers.
   my($p,$q) = bestrational(3.14159265358979, 1000);
   # (355, 113)
 
-Given a real number C<x> (native floating-point, numeric string, or
+Given a finite real number C<x> (native floating-point, numeric string, or
 C<Math::BigFloat> object) and a positive integer C<dbound>, returns a
 pair C<(p, q)> such that C<p/q> is the best rational approximation to
 C<x> with denominator C<< q <= dbound >>.  Here "best" means no other
@@ -4626,6 +4626,8 @@ Given a positive integer C<n> and a 2-element array reference containing
 a non-negative integer C<p> and a positive integer C<q>, returns the next
 rational appearing after C<p/q> in the order C<n> Farey sequence.
 Returns undef if C<p/q> is greater than or equal to one.
+The given fraction does not need to be an entry in the sequence, nor does
+it need to be in reduced form.
 
 =head2 farey_rank
 
@@ -4637,8 +4639,8 @@ of rationals less than C<p/q> in the order C<n> Farey sequence.
 The given fraction does not need to be an entry in the sequence, nor does
 it need to be in reduced form.
 
-A unit fraction will return the totient sum of C<n>.  Any fraction greater
-than one will return the length of the order C<n> sequence, as expected.
+C<1/1> will return the totient sum of C<n>.  Any fraction greater than
+one will return the length of the order C<n> sequence, as expected.
 
 Many OEIS sequences can be produced from this, including
 L<OEIS series A005728|http://oeis.org/A005728> (E<lt>= 1),

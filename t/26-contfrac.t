@@ -190,6 +190,10 @@ subtest 'bestrational' => sub {
   is_deeply( [bestrational(-2.5, 10)], [-5, 2], "bestrational(-2.5,10)" );
   ok( !eval { bestrational("abc", 10); 1 } && $@ =~ /first argument must be numeric/,
       "bestrational rejects nonnumeric string" );
+  ok( !eval { bestrational("NaN", 10); 1 },
+      "bestrational rejects NaN" );
+  ok( !eval { bestrational("Inf", 10); 1 },
+      "bestrational rejects Inf" );
 
   # Pi approximations with increasing dbound
   # dbound=5:   best is 16/5 (semiconvergent; rem<1/dbound but loop must still run)

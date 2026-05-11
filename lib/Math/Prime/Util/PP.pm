@@ -8709,6 +8709,8 @@ sub bestrational {
   } else {
     $x = 0.0 + $x;
   }
+  croak "bestrational: first argument must be a finite real number"
+    unless $x*0 == 0;
 
   my $neg = ($x < 0);
   my $ax = $neg ? -$x : $x;
@@ -8861,8 +8863,15 @@ sub next_farey {
   validate_integer_nonneg($p);
   validate_integer_positive($q);
   return undef if $p >= $q;
-  my($u,$v,$g) = Mgcdext($p,$q);
+
+  my $g = Mgcd($p,$q);
   ($p,$q) = (Mdivint($p,$g),Mdivint($q,$g)) if $g != 1;
+
+  # The single-step formula requires p/q to be an entry in F_n.  Otherwise
+  # use rank/select to find the first sequence entry greater than p/q.
+  return farey($n, farey_rank($n,[$p,$q])) if $q > $n;
+
+  my($u,$v) = Mgcdext($p,$q);
   my $d = Mmulint(Mdivint(($n+$u),$q),$q) - $u;
   my $c = Mdivint((Mmulint($d,$p)+1),$q);
   [$c,$d];
