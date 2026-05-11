@@ -435,7 +435,6 @@ static void forsetproduct_guard_cleanup(pTHX_ void *arg) {
 
 /******************************************************************************/
 
-static int _vcallsubn(pTHX_ I32 flags, I32 stashflags, const char* name, int nargs, int minversion);
 static bool xs_validate_integer_inplace(pTHX_ SV* svn, uint32_t mask);
 static SV* xs_to_bigint(pTHX_ SV* r);
 static SV* xs_to_canonical(pTHX_ SV* sv);
@@ -443,6 +442,16 @@ static SV* xs_to_canonical(pTHX_ SV* sv);
 #define VCALL_ROOT 0x0
 #define VCALL_PP   0x1
 #define VCALL_GMP  0x2
+
+typedef enum {
+  VCALL_USED_NONE = 0,
+  VCALL_USED_ROOT,
+  VCALL_USED_PP,
+  VCALL_USED_GMP
+} vcall_used_t;
+
+static int _vcallsubn(pTHX_ I32 flags, I32 stashflags, const char* name,
+                      int nargs, int minversion, vcall_used_t *used);
 
 static int addint_try_native_result(pTHX_ int opix, SV* sva, SV* svb, const char* opname,
                                     int *astatus_out, int *bstatus_out,
@@ -737,7 +746,7 @@ static OP* xop_dispatch_binary_canonical(pTHX_ const char* name, int minversion)
   dSP;
   SV* out;
   PUTBACK;
-  (void)_vcallsubn(aTHX_ G_SCALAR, VCALL_PP|VCALL_GMP, name, 2, minversion);
+  (void)_vcallsubn(aTHX_ G_SCALAR, VCALL_PP|VCALL_GMP, name, 2, minversion, NULL);
   SPAGAIN;
   out = xs_to_canonical(aTHX_ TOPs);
   SPAGAIN;
@@ -748,7 +757,7 @@ static OP* xop_dispatch_binary_canonical(pTHX_ const char* name, int minversion)
 static OP* xop_dispatch_unary(pTHX_ const char* name, int minversion) {
   dSP;
   PUTBACK;
-  (void)_vcallsubn(aTHX_ G_SCALAR, VCALL_PP|VCALL_GMP, name, 1, minversion);
+  (void)_vcallsubn(aTHX_ G_SCALAR, VCALL_PP|VCALL_GMP, name, 1, minversion, NULL);
   SPAGAIN;
   RETURN;
 }
@@ -976,7 +985,8 @@ static void boot_register_custom_ops(pTHX) {
 }
 
 /* Call a Perl sub to handle work for us. */
-static int _vcallsubn(pTHX_ I32 flags, I32 stashflags, const char* name, int nargs, int minversion)
+static int _vcallsubn(pTHX_ I32 flags, I32 stashflags, const char* name,
+                      int nargs, int minversion, vcall_used_t *used)
 {
     GV* gv = NULL;
     const char* classname = NULL;
@@ -988,6 +998,7 @@ static int _vcallsubn(pTHX_ I32 flags, I32 stashflags, const char* name, int nar
     int try_pp  = stashflags & VCALL_PP;
 
     assert(!(stashflags & ~(VCALL_PP|VCALL_GMP)));
+    if (used) *used = VCALL_USED_NONE;
 
     if (try_gmp) {
       if (hv_exists(MY_CXT.MPUGMP,name,namelen)) {
@@ -995,6 +1006,7 @@ static int _vcallsubn(pTHX_ I32 flags, I32 stashflags, const char* name, int nar
         if (gvp) {
           gv = *gvp;
           classname = "Math::Prime::Util::GMP";
+          if (used) *used = VCALL_USED_GMP;
         }
       }
       /* Fall-through is ok here. */
@@ -1006,6 +1018,7 @@ static int _vcallsubn(pTHX_ I32 flags, I32 stashflags, const char* name, int nar
       if (gvp) {
         gv = *gvp;
         classname = "Math::Prime::Util::PP";
+        if (used) *used = VCALL_USED_PP;
       }
     }
     if (!gv && !try_pp) {
@@ -1013,6 +1026,7 @@ static int _vcallsubn(pTHX_ I32 flags, I32 stashflags, const char* name, int nar
       if (gvp) {
         gv = *gvp;
         classname = "Math::Prime::Util";
+        if (used) *used = VCALL_USED_ROOT;
       }
     }
     if (!gv) { /* If not found, die with a hopefully useful error message. */
@@ -1041,80 +1055,55 @@ static int find_gmp_info(const char *name) {
       return i;
   return -1;
 }
-static NOINLINE int dispatch_external(pTHX_ const CV* thiscv, I32 context, int nitems, bool gmp_is_ok)
+static NOINLINE int dispatch_external(pTHX_ const CV* thiscv, I32 ax,
+                                      I32 context, int nitems, bool gmp_is_ok)
 {
   const char *name = GvNAME(CvGV(thiscv));
   const int ginfoi = find_gmp_info(name);
   I32 callflags = VCALL_PP;
   uint32_t ver = 0;
   bool usegmp = ginfoi >= 0 && gmp_is_ok;
-  int nret;
+  vcall_used_t used = VCALL_USED_NONE;
+  int nret, i;
 
   if (usegmp) {
     ver = gmp_info[ginfoi].version;
     callflags |= VCALL_GMP;
   }
 
-  nret = _vcallsubn(aTHX_ context, callflags, name, nitems, ver);
+  nret = _vcallsubn(aTHX_ context, callflags, name, nitems, ver, &used);
 
-  /* TODO: _vcallsubn returns the number of values we got back.  Use this
-   *       together with the gmp_info type to decide what to objectify.
-   */
-
-  return nret;
-}
-
-static NOINLINE int dispatch_prep_return(pTHX_ const CV *cv,
-                                         I32 ax, I32 context,
-                                         int nitems,
-                                         bool gmp_is_ok, bool canonical)
-{
-  int nret = dispatch_external(aTHX_ cv, context, nitems, gmp_is_ok);
-
-  if (canonical) {
-    int i;
+  /* PP handles its own return policy.  Normalize GMP bigint returns here. */
+  if (used == VCALL_USED_GMP && ginfoi >= 0 && gmp_info[ginfoi].rettype == R_BIGINT) {
     for (i = 0; i < nret; i++) {
-      /* Use PL_stack_base directly instead of local sp, no SPAGAIN used */
-      SV* sv = PL_stack_base[ax + i];
-      SV* out = xs_to_canonical(aTHX_ sv);
+      SV* out = xs_to_canonical(aTHX_ PL_stack_base[ax + i]);
       PL_stack_base[ax + i] = out;
     }
   }
+
   return nret;
 }
 
 #define DISPATCHPP_RETURN() \
   do { \
-    int nr_ = dispatch_prep_return(aTHX_ cv, ax, GIMME_V, items, TRUE, FALSE); \
-    XSRETURN(nr_); \
-  } while (0)
-
-#define DISPATCHPP_RETURN_CANONICAL() \
-  do { \
-    int nr_ = dispatch_prep_return(aTHX_ cv, ax, GIMME_V, items, TRUE, TRUE); \
+    int nr_ = dispatch_external(aTHX_ cv, ax, GIMME_V, items, TRUE); \
     XSRETURN(nr_); \
   } while (0)
 
 #define DISPATCHPP_RETURN_GMPIF(expr) \
   do { \
-    int nr_ = dispatch_prep_return(aTHX_ cv, ax, GIMME_V, items, !!(expr), FALSE);\
-    XSRETURN(nr_); \
-  } while (0)
-
-#define DISPATCHPP_RETURN_CANONICAL_GMPIF(expr) \
-  do { \
-    int nr_ = dispatch_prep_return(aTHX_ cv, ax, GIMME_V, items, !!(expr), TRUE);\
+    int nr_ = dispatch_external(aTHX_ cv, ax, GIMME_V, items, !!(expr)); \
     XSRETURN(nr_); \
   } while (0)
 
 #define DISPATCHPP_RETURN_VOID() \
   do { \
-    (void)_vcallsubn(aTHX_ G_VOID|G_DISCARD, VCALL_PP, SUBNAME, items, 0); \
+    (void)_vcallsubn(aTHX_ G_VOID|G_DISCARD, VCALL_PP, SUBNAME, items, 0, NULL); \
     XSRETURN(0); \
   } while (0)
 
 #define CALLROOTSUB(fn) \
-  (void)_vcallsubn(aTHX_ GIMME_V, VCALL_ROOT, fn, items, 0)
+  (void)_vcallsubn(aTHX_ GIMME_V, VCALL_ROOT, fn, items, 0, NULL)
 
 /******************************************************************************/
 
@@ -1222,7 +1211,7 @@ static SV* xs_to_canonical(pTHX_ SV* sv) {
   if (stype & SNUMFLAG_BIGINT) {
     /* If we've never been here before, lazy load the class */
     if (!MY_CXT.bigintname)
-      _vcallsubn(aTHX_ G_VOID|G_DISCARD, VCALL_ROOT, "_load_bigint", 0, 0);
+      _vcallsubn(aTHX_ G_VOID|G_DISCARD, VCALL_ROOT, "_load_bigint", 0, 0, NULL);
     /* Check to see if it's already the right class */
     if (sv_isobject(sv) && MY_CXT.bigintstash &&
         SvSTASH(SvRV(sv)) == MY_CXT.bigintstash)
@@ -1836,7 +1825,7 @@ void prime_count_upper(IN SV* svn)
       }
       XSRETURN_UV(ret);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 
 void sum_primes(IN SV* svlo, IN SV* svhi = 0)
@@ -1876,7 +1865,7 @@ void random_prime(IN SV* svlo, IN SV* svhi = 0)
       if (ret) XSRETURN_UV(ret);
       else     XSRETURN_UNDEF;
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void print_primes(IN SV* svlo, IN SV* svhi = 0, IN int infd = -1)
   PREINIT:
@@ -2195,7 +2184,7 @@ sieve_prime_cluster(IN SV* svlo, IN SV* svhi, ...)
       }
     }
     if (!done)
-      DISPATCHPP_RETURN_CANONICAL();
+      DISPATCHPP_RETURN();
 
 void is_pseudoprime(IN SV* svn, ...)
   ALIAS:
@@ -2397,7 +2386,7 @@ gcd(...)
     }
     if (status != 0)
       XSRETURN_UV(ret);
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void
 vecmin(...)
@@ -2506,7 +2495,7 @@ vecsum(...)
       free(resstr);
       RETURN_SV_CANONICAL(ST(0));
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void
 vecprefixsum(...)
@@ -2695,7 +2684,7 @@ chinese(...)
         XSRETURN(2);
       }
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void cornacchia(IN SV* svd, IN SV* svn)
   PREINIT:
@@ -2728,7 +2717,7 @@ void lucas_sequence(...)
       XSRETURN(3);
     }
     /* GMP lucas_sequence uses P and Q as IVs */
-    DISPATCHPP_RETURN_CANONICAL_GMPIF(pstatus != 0 && qstatus != 0);
+    DISPATCHPP_RETURN_GMPIF(pstatus != 0 && qstatus != 0);
 
 void lucasuvmod(IN SV* svp, IN SV* svq, IN SV* svk, IN SV* svn)
   ALIAS:
@@ -2754,7 +2743,7 @@ void lucasuvmod(IN SV* svp, IN SV* svq, IN SV* svk, IN SV* svn)
       PUSHs(sv_2mortal(newSVuv( V )));
       XSRETURN(2);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void lucasuv(IN SV* svp, IN SV* svq, IN SV* svk)
   ALIAS:
@@ -2774,7 +2763,7 @@ void lucasuv(IN SV* svp, IN SV* svq, IN SV* svk)
       PUSHs(sv_2mortal(newSViv( V )));
       XSRETURN(2);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void fibonacci(IN SV* svk)
   ALIAS:
@@ -2925,7 +2914,7 @@ void powerfree_count(IN SV* svn, IN int k = 2)
         /* if res = 0, overflow */
       }
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void
 is_power(IN SV* svn, IN SV* svk = 0, IN SV* svroot = 0)
@@ -3091,7 +3080,7 @@ void nth_perfect_power(IN SV* svn)
       }
       XSRETURN_UV(ret);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void nth_ramanujan_prime(IN SV* svn)
   ALIAS:
@@ -3191,7 +3180,7 @@ void next_prime(IN SV* svn)
       if (ret == 0) XSRETURN_UNDEF;
       XSRETURN_UV(ret);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void next_prime_power(IN SV* svn)
   ALIAS:
@@ -3225,7 +3214,7 @@ void next_perfect_power(IN SV* svn)
       n = next_perfect_power_neg(neg_iv(n));
       XSRETURN_IV(neg_iv(n));
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void prev_perfect_power(IN SV* svn)
   PREINIT:
@@ -3242,7 +3231,7 @@ void prev_perfect_power(IN SV* svn)
       if (n > 0 && n <= (UV)IV_MAX)
         XSRETURN_IV(neg_iv(n));
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void next_chen_prime(IN SV* svn)
   PREINIT:
@@ -3260,7 +3249,7 @@ void urandomb(IN UV bits)
       dMY_CXT;
       XSRETURN_UV( urandomb(MY_CXT.randcxt, bits) );
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void random_ndigit_prime(IN SV* svdigits)
   PREINIT:
@@ -3273,7 +3262,7 @@ void random_ndigit_prime(IN SV* svdigits)
       UV res = random_ndigit_prime(MY_CXT.randcxt, digits);
       if (res != 0) XSRETURN_UV(res);
     }
-    DISPATCHPP_RETURN_CANONICAL_GMPIF(dstatus != 1 || digits != uvmax_maxlen);
+    DISPATCHPP_RETURN_GMPIF(dstatus != 1 || digits != uvmax_maxlen);
 
 void random_nbit_prime(IN SV* svbits)
   ALIAS:
@@ -3302,7 +3291,7 @@ void random_nbit_prime(IN SV* svbits)
         if (res) XSRETURN_UV(res);
       }
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void urandomm(IN SV* svn)
   PREINIT:
@@ -3313,7 +3302,7 @@ void urandomm(IN SV* svn)
       ret = urandomm64(MY_CXT.randcxt, n);
       XSRETURN_UV(ret);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void urandomr(IN SV* svlo, IN SV* svhi)
   PREINIT:
@@ -3331,7 +3320,7 @@ void urandomr(IN SV* svlo, IN SV* svhi)
                                          : irand32(MY_CXT.randcxt) );
       XSRETURN_UV(lo + urandomm64(MY_CXT.randcxt, hi-lo+1));
     }
-    DISPATCHPP_RETURN_CANONICAL_GMPIF(lo_s >= 0 && hi_s >= 0);
+    DISPATCHPP_RETURN_GMPIF(lo_s >= 0 && hi_s >= 0);
 
 void toint(IN SV* svn)
   PREINIT:
@@ -3394,7 +3383,7 @@ void pisano_period(IN SV* svn)
       if (r != 0 || n == 0)
         XSRETURN_UV(r);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void random_factored_integer(IN SV* svn)
   PREINIT:
@@ -3738,7 +3727,7 @@ void bernfrac(IN SV* svn)
         }
       }
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void
 _pidigits(IN int digits)
@@ -4108,7 +4097,7 @@ jordan_totient(IN SV* sva, IN SV* svn)
       XSRETURN_UV(ret);
     }
     overflow:
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void almost_prime_count(IN SV* svk, IN SV* svn)
   ALIAS:
@@ -4133,7 +4122,7 @@ void almost_prime_count(IN SV* svk, IN SV* svn)
       }
       XSRETURN_UV(ret);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void nth_almost_prime(IN SV* svk, IN SV* svn)
   ALIAS:
@@ -4202,7 +4191,7 @@ void powmod(IN SV* sva, IN SV* svg, IN SV* svn)
       if (retundef) XSRETURN_UNDEF;
       XSRETURN_UV(ret);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void addmod(IN SV* sva, IN SV* svb, IN SV* svn)
   ALIAS:
@@ -4256,7 +4245,7 @@ void addmod(IN SV* sva, IN SV* svb, IN SV* svn)
       }
       RETURN_STRING_BIGINT(tmp, rlen);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void muladdmod(IN SV* sva, IN SV* svb, IN SV* svc, IN SV* svn)
   ALIAS:
@@ -4285,7 +4274,7 @@ void muladdmod(IN SV* sva, IN SV* svb, IN SV* svc, IN SV* svn)
       rlen = strint_muladdmod_s(SvPVX(tmp), sa,lena, sb,lenb, sc,lenc, ix, sn,lenn);
       RETURN_STRING_BIGINT(tmp,rlen);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void binomialmod(IN SV* svn, IN SV* svk, IN SV* svm)
   PREINIT:
@@ -4308,7 +4297,7 @@ void binomialmod(IN SV* svn, IN SV* svk, IN SV* svm)
         XSRETURN_UV(ret);
       }
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void factorialmod(IN SV* sva, IN SV* svn)
   PREINIT:
@@ -4322,7 +4311,7 @@ void factorialmod(IN SV* sva, IN SV* svn)
       if (n == 1) XSRETURN_UV(0);
       XSRETURN_UV( factorialmod(a, n) );
     }
-    DISPATCHPP_RETURN_CANONICAL_GMPIF(astatus == 1);
+    DISPATCHPP_RETURN_GMPIF(astatus == 1);
 
 void invmod(IN SV* sva, IN SV* svn)
   ALIAS:
@@ -4350,7 +4339,7 @@ void invmod(IN SV* sva, IN SV* svn)
       if (retok == 0) XSRETURN_UNDEF;
       XSRETURN_UV(r);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void allsqrtmod(IN SV* sva, IN SV* svn)
   PREINIT:
@@ -4435,7 +4424,7 @@ void qnr(IN SV* svn)
       if (r < 100)  RETURN_NPARITY(r);
       else          XSRETURN_UV(r);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void
 is_smooth(IN SV* svn, IN SV* svk)
@@ -4539,7 +4528,7 @@ void is_powerful(IN SV* svn, IN SV* svk = 0);
       /* ret=0: nth_powerful / sumpowerful result > UV_MAX, so go to PP/GMP */
       if (ret > 0) XSRETURN_UV(ret);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 
 void kronecker(IN SV* sva, IN SV* svb)
@@ -4599,7 +4588,7 @@ void addint(IN SV* sva, IN SV* svb)
       XSRETURN(1);
     }
     /* Others get dispatched here */
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void muladdint(IN SV* sva, IN SV* svb, IN SV* svc)
   ALIAS:
@@ -4655,7 +4644,7 @@ void muladdint(IN SV* sva, IN SV* svb, IN SV* svc)
       rlen = strint_muladd_s(SvPVX(tmp), sa,lena, sb,lenb, sc,lenc, ix);
       RETURN_STRING_BIGINT(tmp,rlen);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void add1int(IN SV* svn)
   ALIAS:
@@ -4675,7 +4664,7 @@ void add1int(IN SV* svn)
       ST(0) = slowret;
       XSRETURN(1);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void absint(IN SV* svn)
   ALIAS:
@@ -4699,7 +4688,7 @@ void absint(IN SV* svn)
       len = ix==0 ? strint_abs(SvPVX(tmp),s,len) : strint_neg(SvPVX(tmp),s,len);
       RETURN_STRING_BIGINT(tmp,len);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void signint(IN SV* svn)
   ALIAS:
@@ -4793,7 +4782,7 @@ void logint(IN SV* svn, IN UV k, IN SV* svret = 0)
         RETURN_STRING_BIGINT(tmp, rlen);
       }
     }
-    DISPATCHPP_RETURN_CANONICAL_GMPIF(svret == 0);
+    DISPATCHPP_RETURN_GMPIF(svret == 0);
 
 void divrem(IN SV* sva, IN SV* svb)
   ALIAS:
@@ -4834,7 +4823,7 @@ void divrem(IN SV* sva, IN SV* svb)
       XPUSHs(sv_2mortal(newSViv( r )));
       XSRETURN(2);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void lshiftint(IN SV* svn, IN SV* svk = 0)
   ALIAS:
@@ -4888,7 +4877,7 @@ void lshiftint(IN SV* svn, IN SV* svk = 0)
         if (len > 0) RETURN_STRING_BIGINT(tmp,len);
       }
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void
 gcdext(IN SV* sva, IN SV* svb)
@@ -4902,7 +4891,7 @@ gcdext(IN SV* sva, IN SV* svb)
       XPUSHs(sv_2mortal(newSViv( v )));
       XPUSHs(sv_2mortal(newSViv( d )));
     } else {
-      DISPATCHPP_RETURN_CANONICAL();
+      DISPATCHPP_RETURN();
     }
 
 void
@@ -4931,7 +4920,7 @@ stirling(IN SV* svn, IN SV* svm, IN UV type = 1)
         if (s != 0) XSRETURN_IV(s);
       }
     }
-    DISPATCHPP_RETURN_CANONICAL_GMPIF(nstatus == 1 && mstatus == 1);
+    DISPATCHPP_RETURN_GMPIF(nstatus == 1 && mstatus == 1);
 
 NV
 _XS_ExponentialIntegral(IN SV* x)
@@ -5025,7 +5014,7 @@ dedekind_psi(IN SV* svn)
       r = dedekind_psi(n);
       if (r > 0) XSRETURN_UV(r);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void sqrtint(IN SV* svn)
   ALIAS:
@@ -5053,7 +5042,7 @@ void sqrtint(IN SV* svn)
       STRLEN rlen = strint_rootint(SvPVX(tmp), sn, lenn, 2);
       if (rlen > 0) RETURN_STRING_BIGINT(tmp,rlen);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void prime_omega(IN SV* svn)
   ALIAS:
@@ -5105,7 +5094,7 @@ void factorial(IN SV* svn)
       }
       if (n == 0 || r > 0) XSRETURN_UV(r);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void integer_complexity(IN SV* svn)
   PREINIT:
@@ -5133,7 +5122,7 @@ void sumtotient(IN SV* svn)
           RETURN_128((IV)hicount, count);
       }
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void binomial(IN SV* svn, IN SV* svk)
   PREINIT:
@@ -5157,7 +5146,7 @@ void binomial(IN SV* svn, IN SV* svk)
         if (ret != 0) XSRETURN_UV(ret);
       }
     }
-    DISPATCHPP_RETURN_CANONICAL_GMPIF(nstatus == 1 && kstatus != 0);
+    DISPATCHPP_RETURN_GMPIF(nstatus == 1 && kstatus != 0);
 
 void multifactorial(IN SV* svn, IN SV* svk)
   PREINIT:
@@ -5168,7 +5157,7 @@ void multifactorial(IN SV* svn, IN SV* svk)
       r = multifactorial(n, k);
       if (n == 0 || r > 0) XSRETURN_UV(r);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void falling_factorial(IN SV* svn, IN SV* svk)
   ALIAS:
@@ -5187,7 +5176,7 @@ void falling_factorial(IN SV* svn, IN SV* svk)
       IV ret = (ix==0) ? falling_factorial_s(in,k) : rising_factorial_s(in,k);
       if (ret != IV_MAX) XSRETURN_IV(ret);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void mertens(IN SV* svn)
   ALIAS:
@@ -5221,7 +5210,7 @@ void mertens(IN SV* svn)
       }
       if (status != 0) RETURN_NPARITY(r);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 int _is_congruent_number_filter(IN UV n)
   CODE:
@@ -6068,7 +6057,6 @@ void numtoperm(IN SV* svn, IN SV* svk)
   PREINIT:
     UV k, n, fn;
     int nstatus, kstatus;
-    int nret;
     int i, S[32];
   PPCODE:
     nstatus = _validate_and_set(&n, aTHX_ svn, IFLAG_NONNEG);
@@ -6086,8 +6074,7 @@ void numtoperm(IN SV* svn, IN SV* svk)
         }
       }
     }
-    nret = _vcallsubn(aTHX_ GIMME_V, VCALL_PP|VCALL_GMP, SUBNAME, items, 47);
-    XSRETURN(nret);
+    DISPATCHPP_RETURN();
 
 void permtonum(IN SV* svp)
   PREINIT:
@@ -6110,7 +6097,7 @@ void permtonum(IN SV* svp)
       if (i >= plen && perm_to_num(plen, V, &num))
         XSRETURN_UV(num);
     }
-    DISPATCHPP_RETURN_CANONICAL();
+    DISPATCHPP_RETURN();
 
 void randperm(IN SV* svn, IN SV* svk = 0)
   PREINIT:
