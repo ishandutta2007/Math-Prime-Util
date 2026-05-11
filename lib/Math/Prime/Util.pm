@@ -2698,9 +2698,9 @@ the input is larger than C<2^33>.
 Given an integer C<p>, returns 1 if C<p> is positive and
 the Mersenne number C<2^p-1> is prime, and returns 0 otherwise.
 Since an enormous effort has gone into testing these, a list of known
-Mersenne primes is used to accelerate this.  Beyond the highest sequential
-Mersenne prime (currently 37,156,667) this performs pretesting followed by
-the Lucas-Lehmer test.
+Mersenne primes is used to accelerate this.  Beyond the highest value
+double checked by the GIMPS project (currently about 80 million),
+this performs pretesting followed by the Lucas-Lehmer test.
 
 The Lucas-Lehmer test is a deterministic unconditional test that runs
 very fast compared to other primality methods for numbers of comparable
@@ -2708,7 +2708,7 @@ size, and vastly faster than any known general-form primality proof methods.
 While this test is fast, the GMP implementation is not nearly as fast as
 specialized programs such as C<prime95>.  Additionally, since we use the
 table for "small" numbers, testing via this function call will only occur
-for numbers with over 9.8 million digits.  At this size, tools such as
+for numbers with over 24 million digits.  At this size, tools such as
 C<prime95> are greatly preferred.
 
 

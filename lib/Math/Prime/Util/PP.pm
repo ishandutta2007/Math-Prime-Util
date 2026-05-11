@@ -9769,6 +9769,7 @@ sub is_frobenius_khashin_pseudoprime {
   else {
     do {
       $c += 2;
+      next if $c == 9 || ($c >= 15 && (!($c%3) || !($c%5) || !($c%7) || !($c%11) || !($c%13)));
       $k = Mkronecker($c, $n);
     } while $k == 1;
   }
