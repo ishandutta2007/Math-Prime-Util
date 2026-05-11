@@ -51,6 +51,8 @@ Revision history for Perl module Math::Prime::Util
 
     - urandomm(n) accepted n=0 even though documented as positive.  Now rejects.
 
+    - all divisors for large n are properly converted to bigint if needed.
+
     [FUNCTIONALITY AND PERFORMANCE]
 
     - Some functions now have custom op support.  This means in Perl 5.14+

@@ -6082,7 +6082,7 @@ B<lucas_sequence() is deprecated.  Use lucasuvmod() instead.>
 Computes C<U_k>, C<V_k>, and C<Q_k> for the Lucas sequence defined by
 C<P>,C<Q>, modulo C<|n|>.  The modular Lucas sequence is used in a
 number of primality tests and proofs.
-C<k> must be non-negative, and C<n> must be non-zero.
+C<k> must be non-negative, and C<n> must be positive.
 
 =head2 pisano_period
 

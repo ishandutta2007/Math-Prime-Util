@@ -8970,6 +8970,7 @@ sub is_primitive_root {
 
 sub znorder {
   my($a, $n) = @_;
+  validate_integer($a);
   validate_integer_abs($n);
   return (undef,1)[$n] if $n <= 1;
   $a = Mmodint($a, $n);
@@ -9039,7 +9040,7 @@ sub _dlp_trial {
 
   ($a, $g, $p, $limit) = map { tobigint($_) } ($a, $g, $p, $limit);
   my $t = tobigint($g);
-  for (my $k = tobigint(1); $k < $limit; $k++) {
+  for (my $k = tobigint(1); $k <= $limit; $k++) {
     return Maddint($k,0) if $t == $a;
     $t *= $g;
     $t %= $p;
@@ -9576,6 +9577,7 @@ sub lucasvmod {
   validate_integer_nonneg($k);
   validate_integer_abs($n);
   return if $n == 0;
+  return Mmodint(2,$n) if $k == 0;
 
   return (lucasuvmod($P, $Q, $k, $n))[1] if $Q != 1;
 
