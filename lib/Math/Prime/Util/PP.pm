@@ -13040,8 +13040,17 @@ sub set_is_proper_superset {
 sub set_is_proper_intersection {
   my($s,$t) = @_;
   croak 'Not an array reference' unless _is_aref($s) && _is_aref($t);
-  my $minsize = (scalar(@$s) < scalar(@$t)) ? scalar(@$s) : scalar(@$t);
-  my $intersize = scalar(@{Msetintersect($s,$t)});
+  my($v,%ins);
+  for (@$s) {
+    validate_integer($v=$_);
+    $ins{$v} = undef;
+  }
+  my $intersize = 0;
+  for (@$t) {
+    validate_integer($v=$_);
+    $intersize++ if exists $ins{$v};
+  }
+  my $minsize = @$s < @$t ? scalar(@$s) : scalar(@$t);
   return ($intersize > 0 && $intersize < $minsize) ? 1 : 0;
 }
 
