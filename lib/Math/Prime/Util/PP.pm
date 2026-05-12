@@ -195,10 +195,6 @@ if (defined $Math::Prime::Util::GMP::VERSION && $Math::Prime::Util::GMP::VERSION
 }
 }
 
-sub _is_nonneg_int {
-  ((defined $_[0]) && $_[0] ne '' && ($_[0] !~ tr/0123456789//c));
-}
-
 sub _upgrade_to_float {
   do { require Math::BigFloat; Math::BigFloat->import(); }
     if !defined $Math::BigFloat::VERSION;
@@ -13445,8 +13441,10 @@ sub random_factored_integer {
 
 sub prime_precalc {
   my($n) = @_;
-  croak "Parameter '$n' must be a non-negative integer" unless _is_nonneg_int($n);
+  validate_integer_nonneg($n);
+  croak "prime_precalc: n must fit in native unsigned integer" if $n > INTMAX;
   _expand_prime_cache($n);
+  return;
 }
 my @_free_subs;
 sub _register_free_sub {

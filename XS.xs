@@ -1741,23 +1741,31 @@ void prime_memfree()
     if (MY_CXT.MPUPP != NULL) DISPATCHPP_RETURN_VOID();
     XSRETURN(0);
 
-void
-prime_precalc(IN UV n)
-  ALIAS:
-    _XS_set_verbose = 1
-    _XS_set_callgmp = 2
-    _end_for_loop = 3
+void prime_precalc(IN SV* svn)
+  PREINIT:
+    UV n;
   PPCODE:
-    PUTBACK; /* SP is never used again, the 3 next func calls are tailcall
-    friendly since this XSUB has nothing to do after the 3 calls return */
+    if (_validate_and_set(&n, aTHX_ svn, IFLAG_NONNEG) != 1)
+      croak("prime_precalc: n must fit in native unsigned integer");
+    prime_precalc(n);
+    XSRETURN(0);
+
+void _XS_set_verbose(IN SV* svn)
+  ALIAS:
+    _XS_set_callgmp = 1
+    _end_for_loop = 2
+  PREINIT:
+    UV n;
+  PPCODE:
+    if (_validate_and_set(&n, aTHX_ svn, IFLAG_NONNEG) != 1)
+      croak("%s: n must fit in native unsigned integer", SUBNAME);
     switch (ix) {
-      case 0:  prime_precalc(n);    break;
-      case 1:  _XS_set_verbose(n);  break;
-      case 2:  _XS_set_callgmp(n);  break;
-      case 3:
-      default: { dMY_CXT; MY_CXT.forcount--; MY_CXT.forexit = n>0; } break;
+      case 0:  _XS_set_verbose(n);  break;
+      case 1:  _XS_set_callgmp(n);  break;
+      case 2:
+      default: { dMY_CXT; MY_CXT.forcount--; MY_CXT.forexit = n > 0; } break;
     }
-    return; /* skip implicit PUTBACK */
+    XSRETURN(0);
 
 
 void prime_count(IN SV* svlo, IN SV* svhi = 0)
