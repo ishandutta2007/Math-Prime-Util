@@ -3889,6 +3889,12 @@ The result will be in set form (numerically sorted, no duplicates).
 The input sets are not aliased inside the block (modifying C<$a> and
 C<$b> has no effect outside the block).
 
+For performance and memory, C<setbinop> may evaluate one or more blocks
+using XS then restart using a more general path if the result set cannot
+be natively stored.  This is an unusual case where results are larger or
+smaller than an IV.  Because of this, the block should not rely on side
+effects.
+
 This corresponds to Pari's C<setbinop> function.
 Our function uses B<much> less memory, as of Pari 2.18.1.
 

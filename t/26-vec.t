@@ -318,6 +318,8 @@ subtest 'vecuniq', sub {
   is_deeply([vecuniq("-9223372036854775808","9223372036854775807",4294967295,"9223372036854775807",4294967295,"-9223372036854775808")], ["-9223372036854775808","9223372036854775807",4294967295], "vecuniq with signed 64-bit inputs");
   eval { vecuniq(undef,1,2) };
   like($@, qr/defined/, "vecuniq rejects undef");
+
+  is_deeply([vecuniq(~0,-1)],[~0,-1],"vecuniq with UV_MAX and -1");
 };
 
 ###### vecsingleton

@@ -5340,10 +5340,12 @@ void setbinop(IN SV* block, IN SV* sva, IN SV* svb = 0)
 
       agv = gv_fetchpv("a", GV_ADD, SVt_PV);
       bgv = gv_fetchpv("b", GV_ADD, SVt_PV);
-      SAVESPTR(GvSV(agv));
-      SAVESPTR(GvSV(bgv));
       asv = NEWSVINT(0,0);
       bsv = NEWSVINT(0,0);
+      SAVEFREESV(asv);
+      SAVEFREESV(bsv);
+      SAVESPTR(GvSV(agv));
+      SAVESPTR(GvSV(bgv));
       GvSV(agv) = asv;
       GvSV(bgv) = bsv;
       s = iset_create( 4UL * ((size_t)alen + (size_t)blen + 2) );
@@ -5382,7 +5384,6 @@ void setbinop(IN SV* block, IN SV* sva, IN SV* svb = 0)
           if (j < blen) break;
         }
       }
-      /* asv and bsv are going to be freed with agv and bgv. */
       if (status != 0 && !iset_is_invalid(s)) {
         if (rb != ra) Safefree(rb);
         Safefree(ra);
@@ -7674,20 +7675,20 @@ void vecuniq(...)
   PROTOTYPE: @
   PREINIT:
     iset_t s;
-    int status, retvals;
+    int addret, status, retvals;
     SSize_t j;
     UV n;
     unsigned long sz, nret;
   PPCODE:
     retvals = (GIMME_V != G_SCALAR && GIMME_V != G_VOID);
     s = iset_create((size_t)items);
-    for (status = 1, nret = 0, j = 0; j < items; j++) {
+    for (status = 1, nret = 0, j = 0; status != 0 && j < items; j++) {
       status = _validate_and_set(&n, aTHX_ ST(j), IFLAG_ANY);
       if (status == 0) break;
-      if (iset_add(&s, n, status) == 0)
-        continue;
-      if (iset_sign(s) == 0) { status = 0; break; }
-      if (retvals) {
+      addret = iset_add(&s, n, status);
+      if (iset_sign(s) == 0)
+        status = 0;
+      if (addret && retvals) {
         PUSHs(sv_2mortal(NEWSVINT(status,n)));
         nret++;
       }

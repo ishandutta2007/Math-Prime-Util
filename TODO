@@ -1,6 +1,5 @@
 - Testing requirements after changes:
-  * Test all functions return either native or bigints.  Functions that
-    return raw MPU::GMP results will return strings, which isn't right.
+  * Test all functions return either native or bigints.
   * Valgrind, coverage
   * use:  -O2 -g -Wall -Wextra -Werror=vla -Wdeclaration-after-statement -fsigned-char
   * Test on 32-bit Perl, Cygwin, Win32.
@@ -188,6 +187,7 @@
        https://www.ams.org/journals/mcom/1969-23-106/S0025-5718-1969-0247789-3/S0025-5718-1969-0247789-3.pdf
        Hunter/Sorenson(1997)
        https://cosec.bit.uni-bonn.de/fileadmin/user_upload/teaching/08us/08us-cryptabit/AnatInt_Crypto-sld.pdf
+       https://arxiv.org/pdf/2604.22058
 
 - consider random_smooth_integer, random_rough_integer.  nbit or range or mod?
   See: https://cr.yp.to/papers/epsi.pdf
@@ -514,8 +514,6 @@ OEIS lucky numbers:
 = lobby email
   - almost_prime_count ranged
 
-= gmp cmpint
-
 - totient sum, look at paper from Sukhoy and Stoytchev (s41598-021-99545-w.pdf)
   Better:  https://arxiv.org/pdf/2506.07386
   The lucasaugustus method is slower than ours until 10^16 where the memory
@@ -535,7 +533,6 @@ OEIS lucky numbers:
   - factor
 - special
   - factorial
-- merge vcallsubn into dispatch_external
 
 - find_gmp_info replace linear scan with hash?
 
@@ -557,7 +554,7 @@ OEIS lucky numbers:
 
 - t/81-bignum should try different bigint classes
 
-- ecm
+- ecm: tinyecm128 -> tinyecm64 (uint64_t)  [do this soon]
 
 - waring_goldbach(n,k,t)  {p1}^k + {p2}^k + ... + {pt}^k
 
@@ -671,4 +668,28 @@ OEIS lucky numbers:
     Pi
     primes
 
-- GMP dispatch canonical stack, see divisors, factors, etc.
+- PP.pm, iterators in for... need eval wrapping so _end_for_loop always happens.
+
+- Move some set op logic from XS.xs to xs_set.c
+
+- srand should perhaps do better input parsing.
+
+- put the secure_bzero somewhere to export.  We use it in 3 files.
+
+- ensure we Safefree before croaks in XS.
+
+- permtonum better algorithm (maybe for GMP).
+- numtoperm performance.  Maybe split native/all-bigint.
+- PP randperm better algorithm
+- GMP fromdigits needs to accept negatives and croak on array holes
+
+- vecuniq XS should use SVNUMTEST instead of validate.  Optimistically use the
+  iset.  If we failed that, fall through to the generic hash code.
+  Modify the docs to indicate we are generic.
+
+- PP.pm uses 'defined $x' for optional variables, while it really should be
+  looking at scalar(@_) instead.  Right now we take undef = default.
+
+- setbinop: Consider pushing any SV that doesn't go into the iset into a
+  separate list.  If that list is non-empty at the end, push the iset plus
+  the list into a call to PP toset.  Or better setinsert(iset,list).
