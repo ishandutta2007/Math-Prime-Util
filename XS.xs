@@ -1110,8 +1110,8 @@ static NOINLINE int dispatch_external(pTHX_ const CV* thiscv, I32 ax,
     XSRETURN(0); \
   } while (0)
 
-#define CALLROOTSUB(fn) \
-  (void)_vcallsubn(aTHX_ GIMME_V, VCALL_ROOT, fn, items, 0, NULL)
+#define CALLROOTSUBVOID(fn) \
+  (void)_vcallsubn(aTHX_ G_VOID|G_DISCARD, VCALL_ROOT, fn, items, 0, NULL)
 
 /******************************************************************************/
 
@@ -1601,8 +1601,8 @@ void csrand(IN SV* seed = 0)
       uint32_t size32 = size > (STRLEN)UINT32_MAX ? UINT32_MAX : (uint32_t)size;
       csprng_seed(MY_CXT.randcxt, size32, data);
     }
-    if (_XS_get_callgmp() >= 42) CALLROOTSUB("_csrand_p");
-    return;
+    if (_XS_get_callgmp() >= 42) CALLROOTSUBVOID("_csrand_p");
+    XSRETURN(0);
 
 UV srand(IN UV seedval = 0)
   PREINIT:
@@ -1615,7 +1615,7 @@ UV srand(IN UV seedval = 0)
         croak("Failed to get entropy bytes for srand");
     }
     csprng_srand(MY_CXT.randcxt, seedval);
-    if (_XS_get_callgmp() >= 42) CALLROOTSUB("_srand_p");
+    if (_XS_get_callgmp() >= 42) CALLROOTSUBVOID("_srand_p");
     RETVAL = seedval;
   OUTPUT:
     RETVAL
@@ -7486,7 +7486,10 @@ CODE:
     SV **retsvarr;  /* Store results */
 
     SETSUBREF(subcv, block);
-    if (items <= 2) XSRETURN_EMPTY;
+    if (items <= 2) {
+      if (GIMME_V == G_ARRAY) XSRETURN_EMPTY;
+      else                    XSRETURN_UV(0);
+    }
 
     New(0, retsvarr, items-2, SV*);
 
@@ -7528,6 +7531,12 @@ CODE:
         retsvarr[i-1] = newSVsv(xs_call_cv_noinput_1_sv(aTHX_ subcv));
       }
     }
+    if (GIMME_V != G_ARRAY) {
+      for (i = 0; i < items-2; i++)
+        { SvREFCNT_dec_NN(retsvarr[i]);  retsvarr[i]=0; }
+      Safefree(retsvarr);
+      XSRETURN_UV(items-2);
+    }
     for (i = 0; i < items-2; i++)
       { ST(i) = sv_2mortal(retsvarr[i]);  retsvarr[i]=0; }
     Safefree(retsvarr);
@@ -7538,7 +7547,7 @@ void
 vecwindow(SV* block, SV* svstep, SV* svsize, ...)
 PROTOTYPE: &$$@
 PREINIT:
-    SSize_t i, j, nlist, step, size;
+    SSize_t i, j, nlist, step, size, numret;
     UV ustep, usize;
     CV *subcv;
     SV **list;
@@ -7559,54 +7568,58 @@ PPCODE:
     /* ST(0)=block, ST(1)=step, ST(2)=size, ST(3..)=list */
     nlist = items - 3;
     list  = &PL_stack_base[ax+3];
-    if (nlist < size) XSRETURN_EMPTY;
+    if (nlist < size) {
+      if (GIMME_V == G_ARRAY) XSRETURN_EMPTY;
+      else                    XSRETURN_UV(0);
+    }
     result_av = (AV*)sv_2mortal((SV*)newAV());
 #if USE_MULTICALL
     if (!CvISXSUB(subcv)) {
-        SC_dMULTICALL;
-        SV **before_sp;
-        I32 gimme = G_ARRAY;
-        AV *av = save_ary(PL_defgv);
-        AvREAL_off(av);
-        SC_PUSH_MULTICALL(subcv);
-        for (i = 0; i + size <= nlist; i += step) {
-            av_fill(av, size - 1);
-            for (j = 0; j < size; j++)
-                AvARRAY(av)[j] = list[i + j];
-            before_sp = PL_stack_sp;
-            SC_MULTICALL;
-            for (j = 1; before_sp + j <= PL_stack_sp; j++)
-                av_push(result_av, newSVsv(*(before_sp + j)));
-            PL_stack_sp = before_sp;
-        }
-        FIX_MULTICALL_REFCOUNT;
-        SC_POP_MULTICALL;
+      SC_dMULTICALL;
+      SV **before_sp;
+      I32 gimme = G_ARRAY;
+      AV *av = save_ary(PL_defgv);
+      AvREAL_off(av);
+      SC_PUSH_MULTICALL(subcv);
+      for (i = 0; i + size <= nlist; i += step) {
+        av_fill(av, size - 1);
+        for (j = 0; j < size; j++)
+          AvARRAY(av)[j] = list[i + j];
+        before_sp = PL_stack_sp;
+        SC_MULTICALL;
+        for (j = 1; before_sp + j <= PL_stack_sp; j++)
+          av_push(result_av, newSVsv(*(before_sp + j)));
+        PL_stack_sp = before_sp;
+      }
+      FIX_MULTICALL_REFCOUNT;
+      SC_POP_MULTICALL;
     }
     else
 #endif
     {
-        for (i = 0; i + size <= nlist; i += step) {
-            I32 k, nret;
-            PUSHMARK(SP);  EXTEND(SP, (EXTEND_TYPE)size);
-            for (j = 0; j < size; j++)  PUSHs(list[i + j]);
-            PUTBACK;
-            nret = call_sv((SV*)subcv, G_ARRAY);
-            SPAGAIN;
-            for (k = 0; k < nret; k++)
-                av_push(result_av, newSVsv(SP[k + 1 - nret]));
-            SP -= nret;  PUTBACK;
-        }
+      for (i = 0; i + size <= nlist; i += step) {
+        I32 k, nret;
+        PUSHMARK(SP);  EXTEND(SP, (EXTEND_TYPE)size);
+        for (j = 0; j < size; j++)  PUSHs(list[i + j]);
+        PUTBACK;
+        nret = call_sv((SV*)subcv, G_ARRAY);
+        SPAGAIN;
+        for (k = 0; k < nret; k++)
+          av_push(result_av, newSVsv(SP[k + 1 - nret]));
+        SP -= nret;  PUTBACK;
+      }
     }
+    numret = (SSize_t)av_count(result_av);
 
-    {
-        SSize_t total = (SSize_t)av_count(result_av);
-        SV **res = AvARRAY(result_av);
-        AvREAL_off(result_av);          /* transfer ownership to stack mortals */
-        EXTEND(SP, (EXTEND_TYPE)total);
-        for (i = 0; i < total; i++)
-            PUSHs(sv_2mortal(res[i]));
-        XSRETURN(total);
+    if (GIMME_V == G_ARRAY) {
+      SV **res = AvARRAY(result_av);
+      AvREAL_off(result_av);          /* transfer ownership to stack mortals */
+      EXTEND(SP, (EXTEND_TYPE)numret);
+      for (i = 0; i < numret; i++)
+          PUSHs(sv_2mortal(res[i]));
+      XSRETURN(numret);
     }
+    XSRETURN_UV(numret);
 }
 
 void

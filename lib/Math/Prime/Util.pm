@@ -3704,6 +3704,7 @@ C<vecpmex>(1,2,...,I<w>) = I<w>+1.
 Given a code block and a list, calls the code block for each pair
 in the list, setting the local C<$a> and C<$b> to the values in
 each pair.
+In scalar context, returns the number of results.
 
 There is no restriction of what the list contains, as seen in the
 second example.
@@ -3731,6 +3732,7 @@ by C<step> between calls.  The window elements are passed as C<@_> to the
 block.  All return values from each block call are collected and returned
 as a flat list (like C<map>).  Incomplete trailing windows are silently
 dropped.
+In scalar context, returns the number of results.
 
 Both C<step> and C<size> must be positive integers.
 When C<step E<gt> size> there are gaps between windows.
