@@ -10249,7 +10249,11 @@ sub trial_factor {
   validate_integer_nonneg($limit) if defined $limit;
 
   return ($n==1) ? () : ($n)  if $n < 4;
-  return ($n) if defined $limit && $limit < 2;
+
+  if (defined $limit && $limit < 5) {
+    # 0 => factor all.  2,3,5 always pulled out.
+    $limit = $limit == 0 ? undef : 5;
+  }
 
   if ($Math::Prime::Util::_GMPfunc{"trial_factor"} && $Math::Prime::Util::GMP::VERSION >= 0.22) {
     # Not the same API -- other than 2/3/5, returns a single factor
