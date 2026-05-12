@@ -6812,7 +6812,7 @@ Just the way the factors are arranged is different.
 
   my @divisors = divisors(30);   # returns (1, 2, 3, 5, 6, 10, 15, 30)
 
-Produces all the divisors of a positive number input, including 1 and
+Produces all the divisors of a non-negative integer input, including 1 and
 the input number.  The divisors are a power set of multiplications of
 the prime factors, returned as a uniqued sorted list.  The result is
 identical to that of Pari's C<divisors> and Mathematica's C<Divisors[n]>

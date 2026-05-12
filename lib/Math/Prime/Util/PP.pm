@@ -329,6 +329,10 @@ sub _is_aref {
   my $type = reftype($_[0]);
   defined($type) && $type eq 'ARRAY';
 }
+sub _is_href {
+  my $type = reftype($_[0]);
+  defined($type) && $type eq 'HASH';
+}
 sub _is_sref {
   my $type = reftype($_[0]);
   # Return true if we can write a scalar in it, regardless of current contents.
@@ -11787,7 +11791,8 @@ sub RiemannR {
 
 sub LambertW {
   my($x) = @_;
-  croak "LambertW: x must be >= -1/e" if $x < -0.36787944118;
+  croak "LambertW: x must be >= -1/e"
+    if $x < '-0.36787944117144232159552377016146086745';
 
   if ($Math::Prime::Util::_GMPfunc{"lambertw"}) {
     my $r = _try_real_gmp_func(\&Math::Prime::Util::GMP::lambertw, 0.42, $x);
@@ -12096,7 +12101,7 @@ sub _forcompositions {
   my($mina, $maxa, $minn, $maxn, $primeq) = (1,$n,1,$n,-1);
   if (defined $rhash) {
     croak "$subname second argument must be a hash reference"
-      unless ref($rhash) eq 'HASH';
+      unless _is_href($rhash);
     if (defined $rhash->{amin}) {
       $mina = $rhash->{amin};
       validate_integer_nonneg($mina);
@@ -12971,37 +12976,53 @@ sub setinvert {
 
 # For these set_is_ functions, the inputs can be unordered but no duplicates.
 
-sub set_is_disjoint {
-  my($s,$t) = @_;
-  croak 'Not an array reference' unless _is_aref($s) && _is_aref($t);
-  ($s,$t) = ($t,$s) if scalar(@$s) > scalar(@$t);
-  return 1 if @$s == 0 || @$t == 0;
-  my($k,%ins);
-  $ins{$k=$_}=undef for @$s;
-  for my $v (@$t) { return 0 if exists $ins{$k=$v} }
-  1;
-}
 sub set_is_equal {
   my($s,$t) = @_;
   croak 'Not an array reference' unless _is_aref($s) && _is_aref($t);
   return 0 unless @$s == @$t;
-  my %ins;
-  $ins{$_} = 0 for @$s;
-  for my $v (@$t) {
+  my($v,%ins);
+  for (@$s) {
+    validate_integer($v=$_);
+    $ins{$v} = 0;
+  }
+  for (@$t) {
+    validate_integer($v=$_);
     return 0 unless exists $ins{$v};
     $ins{$v}++;
   }
   for (values %ins) { return 0 unless $_ }
   1;
 }
+sub set_is_disjoint {
+  my($s,$t) = @_;
+  croak 'Not an array reference' unless _is_aref($s) && _is_aref($t);
+  ($s,$t) = ($t,$s) if scalar(@$s) > scalar(@$t);
+  return 1 if @$s == 0 || @$t == 0;  # Yes, this skips validation
+  my($v,%ins);
+  for (@$s) {
+    validate_integer($v=$_);
+    $ins{$v} = undef;
+  }
+  for (@$t) {
+    validate_integer($v=$_);
+    return 0 if exists $ins{$v};
+  }
+  1;
+}
 sub set_is_subset {
   my($s,$t) = @_;
   croak 'Not an array reference' unless _is_aref($s) && _is_aref($t);
-  return 1 if @$t == 0;
+  return 1 if @$t == 0;  # Yes, this skips validation
   return 0 if @$s < @$t;
-  my %ins;
-  undef @ins{@$s};
-  for my $v (@$t) { return 0 unless exists $ins{$v} }
+  my($v,%ins);
+  for (@$s) {
+    validate_integer($v=$_);
+    $ins{$v} = undef;
+  }
+  for (@$t) {
+    validate_integer($v=$_);
+    return 0 unless exists $ins{$v};
+  }
   1;
 }
 sub set_is_proper_subset {
