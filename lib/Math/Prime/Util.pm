@@ -5858,10 +5858,10 @@ and is very time and space efficient with huge C<n> and small C<k>.
 Since C<k> values are returned, C<k> must fit in a native signed integer.
 
 The randomness comes from our CSPRNG.
-Results in XS are produced by the Fisher-Yates-Knuth process,
+Results are produced by the Fisher-Yates-Knuth process,
 stopping after C<k> selections.  This is equivalent to shuffling
 C<0> through C<n-1> and returning the first C<k> values, without
-necessarily materializing the full shuffle.
+needing to perform the full shuffle.
 
 In scalar context, returns the number of elements that would be returned.
 

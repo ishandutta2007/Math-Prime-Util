@@ -24,6 +24,13 @@ subtest 'randperm', sub {
   is(scalar randperm(4,"100000000000000000000"),4,"scalar randperm(4,large k) returns 4");
   is(scalar randperm("9223372036854775808",1),1,"scalar randperm(large n,1) returns 1");
 
+  csrand(12345);
+  my @p50k7 = randperm(50,7);
+  csrand(12345);
+  my @p50 = randperm(50);
+  $#p50 = 6;
+  is("@p50k7", "@p50", "randperm(n,k) matches full permutation prefix");
+
   my @p128 = randperm(128);
   isnt("@p128", join(" ",0..127), "randperm(128) shuffles");
   is(join(" ",sort {$a<=>$b}@p128), join(" ",0..127), "randperm(128) gives expected indices");

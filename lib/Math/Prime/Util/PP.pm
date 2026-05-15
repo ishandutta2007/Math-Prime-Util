@@ -186,12 +186,14 @@ if (defined $Math::Prime::Util::GMP::VERSION && $Math::Prime::Util::GMP::VERSION
   *Smulint = \&Math::Prime::Util::GMP::mulint;
   *Sdivint = \&Math::Prime::Util::GMP::divint;
   *Spowint = \&Math::Prime::Util::GMP::powint;
+  *Surandomm = \&Math::Prime::Util::GMP::urandomm;
 } else {
   *Saddint = \&Math::Prime::Util::addint;
   *Ssubint = \&Math::Prime::Util::subint;
   *Smulint = \&Math::Prime::Util::mulint;
   *Sdivint = \&Math::Prime::Util::divint;
   *Spowint = \&Math::Prime::Util::powint;
+  *Surandomm = \&Math::Prime::Util::urandomm;
 }
 }
 
@@ -12395,26 +12397,50 @@ sub randperm {
   validate_integer_nonneg($k) if @_ > 1;
   $k = $n if !defined($k) || $k > $n;
   croak "randperm: k must fit in native signed integer" if $k > SINTMAX;
-  return wantarray ? () : 0 if $k == 0;
-
-  # TODO: Update this to always do a k-iteration FYK shuffle, like XS.
 
   my @S;
-  if ("$k"/"$n" <= 0.30) {
-    my %seen;
-    my $v;
-    for my $i (1 .. $k) {
-      do { $v = Murandomm($n); } while $seen{$v}++;
-      push @S,$v;
-    }
-  } else {
+
+  if ($k <= 1) {
+    push @S, Murandomm($n) if $k == 1;
+    return wantarray ? @S : scalar(@S);
+  }
+
+  if ($k == $n) {  # k <= SINTMAX, so n is also in this case
     @S = (0..$n-1);
     for my $i (0 .. $n-2) {
-      last if $i >= $k;
-      my $j = Murandomm($n-$i);
-      @S[$i,$i+$j] = @S[$i+$j,$i];
+      my $j = $i + Murandomm($n-$i);
+      @S[$i,$j] = @S[$j,$i];
     }
-    $#S = $k-1;
+    return wantarray ? @S : scalar(@S);
+  }
+
+  if ($k == 2) {  # Special case for performance
+    my $i = Murandomm($n);
+    my $j = Madd1int(Murandomm($n-1));
+    push @S, $i;
+    push @S, $j == $i ? 0 : $j;
+    return wantarray ? @S : scalar(@S);
+  }
+
+  my %V;
+  if (!ref($n)) {
+    for my $i (0 .. $k-1) {
+      my $r = $i + Murandomm($n-$i);
+      my $out = exists $V{$r} ? $V{$r} : $r;
+      my $vi  = exists $V{$i} ? $V{$i} : $i;
+      push @S, $out;
+      $V{$r} = $vi if $r != $i;
+    }
+  } else {
+    for my $i (0 .. $k-1) {
+      my $r = Saddint($i, Surandomm($n-$i));
+      my $rkey = "$r";
+      my $ikey = "$i";
+      my $out = exists $V{$rkey} ? $V{$rkey} : $r;
+      my $vi  = exists $V{$ikey} ? $V{$ikey} : $i;
+      push @S, $out;
+      $V{$rkey} = $vi if $rkey ne $ikey;
+    }
   }
   return wantarray ? @S : scalar(@S);
 }
