@@ -6125,17 +6125,26 @@ void randperm(IN SV* svn, IN SV* svk = 0)
     nstatus = _validate_and_set(&n, aTHX_ svn, IFLAG_NONNEG);
     if (items == 1) { kstatus = nstatus;  k = nstatus ? n : 0; }
     else            { kstatus = _validate_and_set(&k, aTHX_ svk, IFLAG_NONNEG);}
-    if (nstatus == 0 || n > (UV)IV_MAX)
-      croak("randperm: n must fit in native signed integer");
-    if (kstatus == 0 || k > n)  /* k cannot be larger than n */
+    if (nstatus == 0)
+      DISPATCHPP_RETURN();
+    if (kstatus == 0 || k > n)
       k = n;
-    if (k == 0) XSRETURN_EMPTY;
+    if (k > (UV)IV_MAX)
+      croak("randperm: k must fit in native signed integer");
+    if (k == 0) {
+      if (GIMME_V == G_ARRAY) XSRETURN_EMPTY;
+      else                    RETURN_NPARITY(0);
+    }
     New(0, S, k, UV);
     randperm(MY_CXT.randcxt, n, k, S);
-    EXTEND(SP, (EXTEND_TYPE)k);
-    for (i = 0; i < k; i++) {
-      if (n < 2*CINTS)  PUSH_NPARITY(S[i]);
-      else              PUSHs(sv_2mortal(newSVuv(S[i])));
+    if (GIMME_V == G_ARRAY) {
+      EXTEND(SP, (EXTEND_TYPE)k);
+      for (i = 0; i < k; i++) {
+        if (n < 2*CINTS)  PUSH_NPARITY(S[i]);
+        else              PUSHs(sv_2mortal(newSVuv(S[i])));
+      }
+    } else {
+      PUSH_NPARITY(k);
     }
     Safefree(S);
 

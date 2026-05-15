@@ -5844,16 +5844,26 @@ later use the same lexicographic ordering).
   @s = @data[randperm(1+$#data)];    # shuffle an array
   @p = @data[randperm(1+$#data,2)];  # pick 2 from an array
 
-Given a single non-negative integer C<n>, returns a random permutation
-of the integers from C<0> to C<n-1>.
-C<n> must fit in a native signed integer.
+Takes a non-negative integer C<n> and an optional non-negative integer C<k>.
+If C<k> is not given or if C<< k >= n >> then C<k> is set equal to C<n>.
 
-Optionally takes a second non-negative integer argument C<k>.
-The returned list will then have at most C<k> elements.
-If C<k> is greater than or equal to C<n>, a full random permutation is returned.
-This is more efficient than truncating the full shuffled list.
+When C<k> equals C<n>, returns a random permutation of the integers
+from C<0> to C<n-1>.
+Since C<n> values are returned, C<n> must fit in a native signed integer.
+
+When a C<k> is given that is less than C<n>,
+C<k> elements are randomly chosen from C<0> to C<n-1> without duplication.
+This is more efficient than truncating the full shuffled list,
+and is very time and space efficient with huge C<n> and small C<k>.
+Since C<k> values are returned, C<k> must fit in a native signed integer.
 
 The randomness comes from our CSPRNG.
+Results in XS are produced by the Fisher-Yates-Knuth process,
+stopping after C<k> selections.  This is equivalent to shuffling
+C<0> through C<n-1> and returning the first C<k> values, without
+necessarily materializing the full shuffle.
+
+In scalar context, returns the number of elements that would be returned.
 
 The slicing technique shown in the last two examples are similar to
 L</shuffle> and L</vecsample>.

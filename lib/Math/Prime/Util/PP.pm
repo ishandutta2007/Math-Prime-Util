@@ -12392,10 +12392,12 @@ sub permtonum {
 sub randperm {
   my($n,$k) = @_;
   validate_integer_nonneg($n);
-  validate_integer_nonneg($k) if defined $k;
-  croak "randperm: n must fit in native signed integer" if $n > SINTMAX;
+  validate_integer_nonneg($k) if @_ > 1;
   $k = $n if !defined($k) || $k > $n;
-  return () if $k == 0;
+  croak "randperm: k must fit in native signed integer" if $k > SINTMAX;
+  return wantarray ? () : 0 if $k == 0;
+
+  # TODO: Update this to always do a k-iteration FYK shuffle, like XS.
 
   my @S;
   if ("$k"/"$n" <= 0.30) {
@@ -12414,7 +12416,7 @@ sub randperm {
     }
     $#S = $k-1;
   }
-  return @S;
+  return wantarray ? @S : scalar(@S);
 }
 
 sub shuffle {

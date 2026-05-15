@@ -2644,87 +2644,215 @@ bool perm_to_num(int n, int *vec, UV *rank) {
   return 1;
 }
 
+/******************************************************************************/
+
+#define RANDPERM_SMALLMAP_MAX 16
+
+static UV randperm_smallmap_get(UV key, UV *keys, UV *vals, UV len) {
+  UV i;
+  for (i = 0; i < len; i++)
+    if (keys[i] == key)
+      return vals[i];
+  return key;   /* identity value */
+}
+
+static void randperm_smallmap_set(UV key, UV val, UV *keys, UV *vals, UV *len) {
+  UV i;
+  for (i = 0; i < *len; i++) {
+    if (keys[i] == key) {
+      vals[i] = val;
+      return;
+    }
+  }
+  keys[*len] = key;
+  vals[*len] = val;
+  (*len)++;
+}
+
+/* Select ordered k-permutation from 0..n-1, using sparse Fisher-Yates. */
+static void randperm_sparse_fy_small(void* ctx, UV n, UV k, UV *S) {
+  UV keys[RANDPERM_SMALLMAP_MAX], vals[RANDPERM_SMALLMAP_MAX];
+  UV i, mlen = 0;
+
+  for (i = 0; i < k; i++) {
+    UV r = i + urandomm64(ctx, n - i);
+    UV out = randperm_smallmap_get(r, keys, vals, mlen);
+    UV vi  = randperm_smallmap_get(i, keys, vals, mlen);
+
+    S[i] = out;
+
+    if (r != i)
+      randperm_smallmap_set(r, vi, keys, vals, &mlen);
+  }
+}
+
+#define RANDPERM_EMPTY_KEY 0
+#define RANDPERM_HASHMAP (size_t)key & mask  /* key is already randomized */
+
+static UV randperm_map_get0(const UV *keys, const UV *vals, size_t mask, UV key) {
+  size_t h = RANDPERM_HASHMAP;
+  UV skey = key + 1;
+
+  while (keys[h] != RANDPERM_EMPTY_KEY) {
+    if (keys[h] == skey)
+      return vals[h];
+    h = (h + 1) & mask;
+  }
+  return key;
+}
+
+/* Return value at key, and also return slot where key is or should be stored. */
+static UV randperm_map_getslot0(const UV *keys, const UV *vals,
+                                size_t mask, UV key, size_t *slot) {
+  size_t h = RANDPERM_HASHMAP;
+  UV skey = key + 1;
+
+  while (keys[h] != RANDPERM_EMPTY_KEY) {
+    if (keys[h] == skey) {
+      *slot = h;
+      return vals[h];
+    }
+    h = (h + 1) & mask;
+  }
+
+  *slot = h;
+  return key;
+}
+
+static void randperm_sparse_fy_hash(void *ctx, UV n, UV k, UV *S) {
+  UV i;
+  size_t cap = 16, mask;
+  UV *table, *keys, *vals;
+
+  while (cap < 2 * (size_t)k)
+    cap <<= 1;
+  mask = cap - 1;
+
+  New(0, table, 2 * cap, UV);
+  keys = table;
+  vals = table + cap;
+  Zero(keys, cap, UV);
+
+  for (i = 0; i < k; i++) {
+    size_t rslot;
+    UV r   = i + urandomm64(ctx, n - i);
+    UV out = randperm_map_getslot0(keys, vals, mask, r, &rslot);
+    UV vi  = randperm_map_get0(keys, vals, mask, i);
+
+    S[i] = out;
+
+    if (r != i) {
+      UV skey = r + 1;
+
+      /*
+       * If the slot was empty and vi == r, the virtual array already has
+       * identity at r, so no entry is needed.  If the slot already exists,
+       * write even when vi == r to overwrite a stale non-identity mapping.
+       */
+      if (keys[rslot] != RANDPERM_EMPTY_KEY || vi != r) {
+        keys[rslot] = skey;
+        vals[rslot] = vi;
+      }
+    }
+  }
+
+  Safefree(table);
+}
+
+
 /*
- * For k<n, an O(k) time and space method is shown on page 39 of
- *    https://www.math.upenn.edu/~wilf/website/CombinatorialAlgorithms.pdf
- * Note it requires an O(k) complete shuffle as the results are sorted.
+ * Select k values from 0..n-1.
  *
  * This seems to be 4-100x faster than NumPy's random.{permutation,choice}
  * for n under 100k or so.  It's even faster with larger n.  For example
  *   from numpy.random import choice;  choice(100000000, 4, replace=False)
  * uses 774MB and takes 55 seconds.  We take less than 1 microsecond.
+ *
+ * We do not use anything from this source, but it's interesting to read page 39:
+ *    https://www.math.upenn.edu/~wilf/website/CombinatorialAlgorithms.pdf
+ *
+ *
+ * We would like to be performant (obviously) but we also try to avoid allocating
+ * needless space when k is much smaller than n, especially with huge n.
  */
 void randperm(void* ctx, UV n, UV k, UV *S) {
-  UV i, j;
+  UV i, j, m;
 
   if (k > n)  k = n;
 
-  if        (k == 0) {                  /* 0 of n */
-  } else if (k == 1) {                  /* 1 of n.  Pick one at random */
-    S[0] = urandomm64(ctx,n);
-  } else if (k == 2 && n == 2) {        /* 2 of 2.  Flip a coin */
-    S[0] = urandomb(ctx,1);
-    S[1] = 1-S[0];
-  } else if (k == 2) {                  /* 2 of n.  Pick 2 skipping dup */
-    S[0] = urandomm64(ctx,n);
-    S[1] = urandomm64(ctx,n-1);
-    if (S[1] >= S[0]) S[1]++;
-  } else if (k < n/100 && k < 30) {     /* k of n.  Pick k with loop */
-    for (i = 0; i < k; i++) {
-      do {
-        S[i] = urandomm64(ctx,n);
-        for (j = 0; j < i; j++)
-          if (S[j] == S[i])
-            break;
-      } while (j < i);
-    }
-  } else if (k < n/100 && n > 1000000) {/* k of n.  Pick k with dedup retry */
-    for (j = 0; j < k; ) {
-      for (i = j; i < k; i++) /* Fill S[j .. k-1] then sort S */
-        S[i] = urandomm64(ctx,n);
-      sort_uv_array(S, k);
-      for (j = 0, i = 1; i < k; i++)  /* Find and remove dups.  O(n). */
-        if (S[j] != S[i])
-          S[++j] = S[i];
-      j++;
-    }
-    /* S is sorted unique k-selection of 0 to n-1.  Shuffle. */
-    for (i = 0; i < k; i++) {
-      j = urandomm64(ctx,k-i);
-      { UV t = S[i]; S[i] = S[i+j]; S[i+j] = t; }
-    }
-  } else if (k < n/4) {                 /* k of n.  Pick k with mask */
-    uint32_t *mask, smask[8] = {0};
-    if (n <= 32*8) mask = smask;
-    else           Newz(0, mask, n/32 + ((n%32)?1:0), uint32_t);
-    for (i = 0; i < k; i++) {
-      do {
-        j = urandomm64(ctx,n);
-      } while ( mask[j>>5] & (1U << (j&0x1F)) );
-      S[i] = j;
-      mask[j>>5] |= (1U << (j&0x1F));
-    }
-    if (mask != smask) Safefree(mask);
-  } else if (k < n) {                   /* k of n.  FYK shuffle n, pick k */
-    UV *T;
-    New(0, T, n, UV);
-    for (i = 0; i < n; i++)
-      T[i] = i;
-    for (i = 0; i < k && i <= n-2; i++) {
-      j = urandomm64(ctx,n-i);
-      S[i] = T[i+j];
-      T[i+j] = T[i];
-    }
-    Safefree(T);
-  } else {                              /* n of n.  FYK shuffle. */
+  if (k == 0)                           /* 0 of n.  Return nothing. */
+    return;
+
+  if (k == 1) {                         /* 1 of n.  Pick one. */
+    S[0] = urandomm64(ctx, n);
+    return;
+  }
+
+  if (k == n) {                         /* n of n.  FYK shuffle. */
     for (i = 0; i < n; i++)
       S[i] = i;
     for (i = 0; i < k && i <= n-2; i++) {
       j = urandomm64(ctx,n-i);
       { UV t = S[i]; S[i] = S[i+j]; S[i+j] = t; }
     }
+    return;
+  }
+
+  /* k of n, k < n.  Do either sparse FYK shuffle or a k-selection FYK. */
+
+  if (k == 2) {                         /* 2 of n.  Unrolled FYK k=2 */
+    i = urandomm64(ctx, n);
+    j = 1 + urandomm64(ctx, n-1);
+    S[0] = i;
+    S[1] = (j == i) ? 0 : j;
+
+  } else if (k == 3) {                  /* 3 of n.  Unrolled FYK k=3 */
+    i = urandomm64(ctx, n);
+    j = 1 + urandomm64(ctx, n-1);
+    m = 2 + urandomm64(ctx, n-2);
+    S[0] = i;
+    S[1] = (j == i) ? 0 : j;
+    S[2] = (m == j) ? (UV)(i != 1) : (m == i) ? 0 : m;
+
+  } else if (k <= RANDPERM_SMALLMAP_MAX) {
+    /* For very small k, use FYK map with small fixed stack allocation. */
+    randperm_sparse_fy_small(ctx, n, k, S);
+
+  } else if (n >= 32768 && k <= 64) {
+    /* For small k relative to n, use dynamic FYK map. */
+    randperm_sparse_fy_hash(ctx, n, k, S);
+
+  } else if ((n >= 2147483647U && k <= n/4) ||  /* lower memory */
+             (n >= 100000      && k <= n/64)) { /* lower memory and speed */
+    /* If n is quite large, use dynamic FYK map for memory reasons */
+    randperm_sparse_fy_hash(ctx, n, k, S);
+
+  } else if (n < 65536) {               /* k of n.  FYK shuffle small n */
+    uint16_t *T;
+    New(0, T, n, uint16_t);
+    for (i = 0; i < n; i++)
+      T[i] = i;
+    for (i = 0; i < k && i <= n-2; i++) {
+      j = i + urandomm32(ctx,n-i);
+      S[i] = T[j];
+      T[j] = T[i];
+    }
+    Safefree(T);
+  } else {                              /* k of n.  FYK shuffle n, pick k */
+    UV *T;
+    New(0, T, n, UV);
+    for (i = 0; i < n; i++)
+      T[i] = i;
+    for (i = 0; i < k && i <= n-2; i++) {
+      j = i + urandomm64(ctx,n-i);
+      S[i] = T[j];
+      T[j] = T[i];
+    }
+    Safefree(T);
   }
 }
+
+/******************************************************************************/
 
 #define SMOOTH_TEST(n,k,p,nextprime) \
   if (n < p*p) return (n <= k);  /* p*p > n means n is prime */ \
