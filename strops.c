@@ -392,6 +392,7 @@ static void b9_add(b9_t *out, const b9_t *a, const b9_t *b)
   if (out->n == 0) out->neg = 0;
 }
 
+#if 0
 /* out = a - b (signed).  out may alias a or b. */
 static void b9_sub(b9_t *out, const b9_t *a, const b9_t *b)
 {
@@ -399,6 +400,7 @@ static void b9_sub(b9_t *out, const b9_t *a, const b9_t *b)
   b9_neg(&nb);
   b9_add(out, a, &nb);
 }
+#endif
 
 static void b9_add_uv(b9_t *out, const b9_t *a, UV v)
 {

@@ -134,6 +134,14 @@ typedef __int8 int8_t;
 
 #endif   /* End of Perl specific section */
 
+#ifndef MAYBE_UNUSED
+# if defined(__GNUC__) || defined(__clang__)
+#  define MAYBE_UNUSED __attribute__((unused))
+# else
+#  define MAYBE_UNUSED
+# endif
+#endif
+
 /* Try to determine if we have 64-bit available via uint64_t */
 #if defined(UINT64_MAX) || defined(_UINT64_T) || defined(__UINT64_TYPE__)
   #define HAVE_UINT64 1

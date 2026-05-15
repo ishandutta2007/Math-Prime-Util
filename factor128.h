@@ -19,7 +19,7 @@ typedef struct {
 /* Factor n into nf.  n must be > 1.  Returns false if cannot factor. */
 extern bool factorintp128(factored128_t *nf, uint128_t n);
 
-static INLINE factored128_t factorint128(uint128_t n)
+MAYBE_UNUSED static INLINE factored128_t factorint128(uint128_t n)
   { factored128_t nf; factorintp128(&nf, n); return nf; }
 
 #endif /* BITS_PER_WORD == 64 && HAVE_UINT128 */

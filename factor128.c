@@ -359,6 +359,7 @@ static int is_bpsw128(uint128_t n) {
   return 1;
 }
 
+#if 0
 /* Returns 1 if n is (probably) prime, 0 if composite.
  * Uses trial division up to 2011, then BPSW. */
 static int is_prime128(uint128_t n) {
@@ -375,6 +376,7 @@ static int is_prime128(uint128_t n) {
 
   return is_bpsw128(n);
 }
+#endif
 
 /*****************************************************************************
  * SQUFOF (Square Form Factorization) for 128-bit inputs.

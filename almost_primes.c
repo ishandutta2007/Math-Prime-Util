@@ -724,6 +724,7 @@ UV max_almost_prime_count(uint32_t k) {
  * I suspect there are far more efficient methods.
  */
 
+#if 0
 static void _tidy_list(UV **list, UV *Lsize, UV *count, bool minimal) {
   UV *L = *list;
 
@@ -745,7 +746,6 @@ static void _tidy_list(UV **list, UV *Lsize, UV *count, bool minimal) {
   }
 }
 
-#if 0
 UV range_construct_almost_prime(UV** list, uint32_t k, UV lo, UV hi) {
   UV *L, minkap1, lastprime, count = 0;
 
