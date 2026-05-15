@@ -5863,7 +5863,8 @@ stopping after C<k> selections.  This is equivalent to shuffling
 C<0> through C<n-1> and returning the first C<k> values, without
 needing to perform the full shuffle.
 
-In scalar context, returns the number of elements that would be returned.
+In scalar context, returns the number of elements that would be returned,
+without actually generating the permutations.
 
 The slicing technique shown in the last two examples are similar to
 L</shuffle> and L</vecsample>.

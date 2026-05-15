@@ -644,8 +644,8 @@ OEIS lucky numbers:
 
 - redo t/32-iterators as subtests.
 
-- randperm, shuffle, vecsample should return count in scalar context
-  and should be documented
+- shuffle, vecsample should return count in scalar context
+  and should be documented.  We did this for vecslide, vecwindow, randperm.
 
 - more of the is_...prime PPFE functions should be aliased.
 
@@ -680,7 +680,6 @@ OEIS lucky numbers:
 
 - permtonum better algorithm (maybe for GMP).
 - numtoperm performance.  Maybe split native/all-bigint.
-- PP randperm better algorithm
 - GMP fromdigits needs to accept negatives and croak on array holes
 
 - vecuniq XS should use SVNUMTEST instead of validate.  Optimistically use the
@@ -693,3 +692,8 @@ OEIS lucky numbers:
 - setbinop: Consider pushing any SV that doesn't go into the iset into a
   separate list.  If that list is non-empty at the end, push the iset plus
   the list into a call to PP toset.  Or better setinsert(iset,list).
+
+- make a hash.h to hold our UV hash that is used in multiple places.
+  E.g. ds_iset.c.
+
+- @v = intrange($a, $b)

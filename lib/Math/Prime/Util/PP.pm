@@ -12398,32 +12398,29 @@ sub randperm {
   $k = $n if !defined($k) || $k > $n;
   croak "randperm: k must fit in native signed integer" if $k > SINTMAX;
 
+  # If not in array context then return the count now.
+  return $k unless wantarray;
+
   my @S;
 
   if ($k <= 1) {
     push @S, Murandomm($n) if $k == 1;
-    return wantarray ? @S : scalar(@S);
-  }
 
-  if ($k == $n) {  # k <= SINTMAX, so n is also in this case
+  } elsif ($k == $n) {  # k <= SINTMAX, so n is also in this case
     @S = (0..$n-1);
     for my $i (0 .. $n-2) {
       my $j = $i + Murandomm($n-$i);
       @S[$i,$j] = @S[$j,$i];
     }
-    return wantarray ? @S : scalar(@S);
-  }
 
-  if ($k == 2) {  # Special case for performance
+  } elsif ($k == 2) {  # Special case for performance
     my $i = Murandomm($n);
     my $j = Madd1int(Murandomm($n-1));
     push @S, $i;
     push @S, $j == $i ? 0 : $j;
-    return wantarray ? @S : scalar(@S);
-  }
 
-  my %V;
-  if (!ref($n)) {
+  } elsif (!ref($n)) {
+    my %V;
     for my $i (0 .. $k-1) {
       my $r = $i + Murandomm($n-$i);
       my $out = exists $V{$r} ? $V{$r} : $r;
@@ -12431,7 +12428,9 @@ sub randperm {
       push @S, $out;
       $V{$r} = $vi if $r != $i;
     }
+
   } else {
+    my %V;
     for my $i (0 .. $k-1) {
       my $r = Saddint($i, Surandomm($n-$i));
       my $rkey = "$r";
@@ -12442,7 +12441,8 @@ sub randperm {
       $V{$rkey} = $vi if $rkey ne $ikey;
     }
   }
-  return wantarray ? @S : scalar(@S);
+
+  @S;
 }
 
 sub shuffle {

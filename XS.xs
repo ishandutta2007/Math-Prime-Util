@@ -6131,20 +6131,16 @@ void randperm(IN SV* svn, IN SV* svk = 0)
       k = n;
     if (k > (UV)IV_MAX)
       croak("randperm: k must fit in native signed integer");
-    if (k == 0) {
-      if (GIMME_V == G_ARRAY) XSRETURN_EMPTY;
-      else                    RETURN_NPARITY(0);
-    }
+    if (GIMME_V != G_ARRAY)
+      RETURN_NPARITY(k);
+    if (k == 0)
+      XSRETURN_EMPTY;
     New(0, S, k, UV);
     randperm(MY_CXT.randcxt, n, k, S);
-    if (GIMME_V == G_ARRAY) {
-      EXTEND(SP, (EXTEND_TYPE)k);
-      for (i = 0; i < k; i++) {
-        if (n < 2*CINTS)  PUSH_NPARITY(S[i]);
-        else              PUSHs(sv_2mortal(newSVuv(S[i])));
-      }
-    } else {
-      PUSH_NPARITY(k);
+    EXTEND(SP, (EXTEND_TYPE)k);
+    for (i = 0; i < k; i++) {
+      if (n < 2*CINTS)  PUSH_NPARITY(S[i]);
+      else              PUSHs(sv_2mortal(newSVuv(S[i])));
     }
     Safefree(S);
 

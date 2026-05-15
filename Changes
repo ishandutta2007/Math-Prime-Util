@@ -92,6 +92,11 @@ Revision history for Perl module Math::Prime::Util
 
     - forsetproduct no longer aliases the input arrays.
 
+    - randperm consistently uses a Fisher-Yates-Knuth shuffle in all cases,
+      both in XS and PP.  Only the first k entries are returned, and a shuffle
+      map is used so the full range doesn't always have to be allocated.
+      The count of results is returned in scalar context (no random work done).
+
 
 0.74 2026-03-13
 
