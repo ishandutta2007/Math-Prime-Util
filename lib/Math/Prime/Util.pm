@@ -6412,11 +6412,11 @@ An alias for L</drand>, not exported unless the ":rand" tag is used.
 
 Given a positive non-zero input C<n>, returns a uniform random integer
 in the range C<1> to C<n>, along with an array reference containing
-the factors.
+the numerically sorted factors.
 
-This uses Kalai's algorithm for generating random integers along with
-their factorization, and is much faster than the naive method of
-generating random integers followed by a factorization.
+For large enough values, this uses Kalai's algorithm for generating
+random integers along with their factorization, and is much faster than
+the naive method of generating random integers followed by a factorization.
 A later implementation may use Bach's more efficient algorithm.
 
 

@@ -13479,7 +13479,7 @@ sub random_factored_integer {
     # first is n, last is 1
     @S = grep { Mis_prime($_) } @S[1 .. $#S-1];
     my $r = Mvecprod(@S);
-    return ($r, [@S]) if $r <= $n && (1+Murandomm($n)) <= $r;
+    return ($r, Mvecsorti(\@S)) if $r <= $n && (1+Murandomm($n)) <= $r;
   }
 }
 

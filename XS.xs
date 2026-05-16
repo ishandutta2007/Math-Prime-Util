@@ -3407,13 +3407,13 @@ void random_factored_integer(IN SV* svn)
   PPCODE:
     if (_validate_and_set(&n, aTHX_ svn, IFLAG_POS)) {
       dMY_CXT;
-      int f, nf, flip;
+      int f, nf;
       UV r, F[MPU_MAX_FACTORS+1];
       AV* av = newAV();
       r = random_factored_integer(MY_CXT.randcxt, n, &nf, F);
-      flip = (F[0] >= F[nf-1]);  /* Handle results in either sort order */
+      sort_uv_array(F, nf);
       for (f = 0; f < nf; f++)
-        av_push(av, newSVuv(F[flip ? nf-1-f : f]));
+        av_push(av, newSVuv(F[f]));
       XPUSHs(sv_2mortal(newSVuv( r )));
       XPUSHs(sv_2mortal(newRV_noinc( (SV*) av )));
     } else {

@@ -16,6 +16,6 @@ plan tests => 4;
 my($n, $factors) = random_factored_integer(1000000);
 ok($n > 0, "random_factored_integer did not return 0");
 ok($n <= 1000000, "random_factored_integer in requested range");
-my @sfactors = sort {$a<=>$b} @$factors;
-is_deeply( \@sfactors, [factor($n)], "factors match factor routine");
+# random_factored_integer returns factors in sorted order
+is_deeply( $factors, [factor($n)], "factors match factor routine");
 is( vecprod(@$factors), $n, "product of factors = n");
