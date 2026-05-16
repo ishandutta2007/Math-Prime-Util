@@ -1533,7 +1533,7 @@ sub jordan_totient {
   return ($n == 1) ? 1 : 0  if $n <= 1;
 
   return maybetobigint(Math::Prime::Util::GMP::jordan_totient($k, $n))
-    if $Math::Prime::Util::_GMPfunc{"jordan_totient"};
+    if $Math::Prime::Util::_GMPfunc{"jordan_totient"} && !ref($k);
 
   my $totient = 1;
   foreach my $f (Mfactor_exp($n)) {
@@ -1899,7 +1899,7 @@ sub is_powerful {
   return 1 if $n == 1 || $k <= 1;
 
   return Math::Prime::Util::GMP::is_powerful($n,$k)
-    if $Math::Prime::Util::_GMPfunc{"is_powerful"};
+    if $Math::Prime::Util::_GMPfunc{"is_powerful"} && !ref($k);
 
   # First quick checks for inadmissibility.
   if ($k == 2) {
@@ -3408,7 +3408,7 @@ sub divisor_sum {
   $k = 1 if !defined $k;
 
   return maybetobigint(Math::Prime::Util::GMP::sigma($n, $k))
-    if $Math::Prime::Util::_GMPfunc{"sigma"};
+    if $Math::Prime::Util::_GMPfunc{"sigma"} && !ref($k);
 
   my @factors = Mfactor_exp($n);
 
@@ -5214,7 +5214,7 @@ sub powint {
   croak "powint: exponent must be >= 0" if $b < 0;
 
   return maybetobigint(Math::Prime::Util::GMP::powint($a,$b))
-    if $Math::Prime::Util::_GMPfunc{"powint"};
+    if $Math::Prime::Util::_GMPfunc{"powint"} && !ref($b);
 
   # Special cases for small a and b
   if ($a >= -1 && $a <= 4) {
@@ -7132,7 +7132,7 @@ sub is_power {
     if @_ >= 3 && !_is_sref($refp);
   return 0 if abs($n) <= 3 && !$a;
 
-  if ($Math::Prime::Util::_GMPfunc{"is_power"} &&
+  if ($Math::Prime::Util::_GMPfunc{"is_power"} && !ref($a) &&
       ($Math::Prime::Util::GMP::VERSION >= 0.42 ||
        ($Math::Prime::Util::GMP::VERSION >= 0.28 && $n > 0))) {
     my $k = Math::Prime::Util::GMP::is_power($n,$a);
@@ -7855,7 +7855,7 @@ sub logint {
   croak "logint third argument not a scalar reference"
     if @_ >= 3 && !_is_sref($refp);
 
-  if ($Math::Prime::Util::_GMPfunc{"logint"}) {
+  if ($Math::Prime::Util::_GMPfunc{"logint"} && !ref($b)) {
     my $e = Math::Prime::Util::GMP::logint($n, $b);
     if (defined $refp) {
       # logint in 0.47, powmod in 0.36, powint in 0.52
@@ -7930,7 +7930,7 @@ sub stirling {
     return Mvecprod(-1, Mfactorial($n-1));
   }
   return maybetobigint(Math::Prime::Util::GMP::stirling($n,$m,$type))
-    if $Math::Prime::Util::_GMPfunc{"stirling"};
+    if $Math::Prime::Util::_GMPfunc{"stirling"} && !ref($n) && !ref($m);
   # Go through vecsum with quoted negatives to make sure we don't overflow.
   my $s;
   if ($type == 3) {
@@ -8293,15 +8293,15 @@ sub binomial {
   validate_integer($n);
   validate_integer($k);
 
-  # 1. Try GMP
-  return maybetobigint(Math::Prime::Util::GMP::binomial($n,$k))
-    if $Math::Prime::Util::_GMPfunc{"binomial"} &&
-       ($Math::Prime::Util::GMP::VERSION >= 0.53 || ($n >= 0 && $k >= 0 && $n < 4294967296 && $k < 4294967296));
-
-  # 2. Exit early for known 0 cases, and adjust k to be positive.
+  # 1. Exit early for known 0 cases, and adjust k to be positive.
   if ($n >= 0) {  return 0 if $k < 0 || $k > $n;  }
   else         {  return 0 if $k < 0 && $k > $n;  }
   $k = $n - $k if $k < 0;
+
+  # 2. Try GMP
+  return maybetobigint(Math::Prime::Util::GMP::binomial($n,$k))
+    if $Math::Prime::Util::_GMPfunc{"binomial"} && !ref($k) &&
+       ($Math::Prime::Util::GMP::VERSION >= 0.53 || ($n >= 0 && $k >= 0 && $n < 4294967296 && $k < 4294967296));
 
   # TODO: consider reflection for large k (e.g. k=n-2 => k=2)
   # Also, be careful with large n and k with bigints.
@@ -8336,7 +8336,7 @@ sub binomial {
     $negate = 1 if $k & 1;
   }
 
-  if (defined $Math::GMPz::VERSION) {
+  if (defined $Math::GMPz::VERSION && !ref($k)) {
     $R = Math::GMPz->new();
     Math::GMPz::Rmpz_bin_ui($R, Math::GMPz->new($n), $k);
   } elsif (defined $Math::GMP::VERSION && $Math::GMP::VERSION >= 2.23 && $n < 4294967296) {
@@ -8363,20 +8363,20 @@ sub binomialmod {
   validate_integer_abs($m);
   return (undef,0)[$m] if $m <= 1;
 
-  return maybetobigint(Math::Prime::Util::GMP::binomialmod($n,$k,$m))
-    if $Math::Prime::Util::_GMPfunc{"binomialmod"};
-
-  # Avoid the possible enormously slow bigint creation.
-  if ($Math::Prime::Util::_GMPfunc{"binomial"} && $Math::Prime::Util::_GMPfunc{"modint"}) {
-    if ($Math::Prime::Util::GMP::VERSION >= 0.53 || ($n >= 0 && $k >= 0 && $n < 4294967296 && $k < 4294967296)) {
-      return maybetobigint(Math::Prime::Util::GMP::modint(Math::Prime::Util::GMP::binomial($n,$k),$m));
-    }
-  }
-
   return 1 if $k == 0 || $k == $n;
   return 0 if $n >= 0 && ($k < 0 || $k > $n);
   return 0 if $n  < 0 && ($k < 0 && $k > $n);
   return 0+!(($n-$k) & $k) if $m == 2;
+
+  return maybetobigint(Math::Prime::Util::GMP::binomialmod($n,$k,$m))
+    if $Math::Prime::Util::_GMPfunc{"binomialmod"} && !ref($k);
+
+  # Avoid the possible enormously slow bigint creation.
+  if ($Math::Prime::Util::_GMPfunc{"binomial"} && $Math::Prime::Util::_GMPfunc{"modint"} && !ref($k)) {
+    if ($Math::Prime::Util::GMP::VERSION >= 0.53 || ($n >= 0 && $k >= 0 && $n < 4294967296 && $k < 4294967296)) {
+      return maybetobigint(Math::Prime::Util::GMP::modint(Math::Prime::Util::GMP::binomial($n,$k),$m));
+    }
+  }
 
   # TODO: Lucas split, etc.
   # 1. factorexp
@@ -8429,6 +8429,7 @@ sub factorial {
   _validate_integer_nonneg($n);
   return (1,1,2,6,24,120,720,5040,40320,362880,3628800,39916800,479001600)[$n]
     if $n <= 12;
+  croak "factorial: input too large" if ref($n);
 
   my $r = tobigint(1);   # make sure $_BIGINT is loaded.
 
@@ -9318,7 +9319,7 @@ sub lucas_sequence {
 
   return (0,0,0) if $n == 1;
 
-  if ($Math::Prime::Util::_GMPfunc{"lucas_sequence"} && $Math::Prime::Util::GMP::VERSION >= 0.30 && !ref($P) && !ref($Q)) {
+  if ($Math::Prime::Util::_GMPfunc{"lucas_sequence"} && $Math::Prime::Util::GMP::VERSION >= 0.30 && $P >= INTMIN && $P <= SINTMAX && $Q >= INTMIN && $Q <= SINTMAX) {
     return maybetobigintall(
              Math::Prime::Util::GMP::lucas_sequence($n, $P, $Q, $k)
            );
@@ -10261,7 +10262,7 @@ sub trial_factor {
     $limit = $limit == 0 ? undef : 5;
   }
 
-  if ($Math::Prime::Util::_GMPfunc{"trial_factor"} && $Math::Prime::Util::GMP::VERSION >= 0.22) {
+  if ($Math::Prime::Util::_GMPfunc{"trial_factor"} && $Math::Prime::Util::GMP::VERSION >= 0.22 && (!defined $limit || !ref($limit))) {
     # Not the same API -- other than 2/3/5, returns a single factor
     my @F = ();
     while (1) {
@@ -13330,7 +13331,7 @@ sub miller_rabin_random {
   return 0 if $n < 2;
 
   return Math::Prime::Util::GMP::miller_rabin_random($n, $k)
-    if $Math::Prime::Util::_GMPfunc{"miller_rabin_random"};
+    if $Math::Prime::Util::_GMPfunc{"miller_rabin_random"} && $k <= SINTMAX;
 
   # getconfig()->{'assume_rh'})  ==>  2*log(n)^2
   my $maxk = Mdivint(Mmulint(3,$n),4);

@@ -5641,6 +5641,8 @@ defined as the product of the integers 1 to C<n> with the special case
 of C<factorial(0) = 1>.  This corresponds to Pari's C<factorial(n)>
 and Mathematica's C<Factorial[n]> functions.
 
+The input C<n> must fit in an unsigned native integer.
+
 =head2 multifactorial
 
   say multifactorial(9, 3);   # 9 * 6 * 3 = 162
