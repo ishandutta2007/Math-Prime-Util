@@ -6459,7 +6459,8 @@ well as being much faster.
 
 Selects a random n-digit prime, where the input is an integer number of
 digits.  One of the primes within that range (e.g. 1000 - 9999 for
-4-digits) will be uniformly selected.
+4-digits) will be uniformly selected.  The number of digits must be C<1>
+or greater.
 
 If the number of digits is greater than or equal to the maximum native type,
 then the result will be returned as a BigInt.  However, if the C<nobigint>
@@ -6474,7 +6475,8 @@ For better performance with large bit sizes, install L<Math::Prime::Util::GMP>.
   my $bigprime = random_nbit_prime(512);
 
 Selects a random n-bit prime, where the input is an integer number of bits.
-A prime with the nth bit set will be selected.
+A prime with the nth bit set will be selected.  The number of bits must be
+C<2> or greater.
 
 For bit sizes of 64 and lower, L</random_prime> is used, which gives completely
 uniform results in this range.  For sizes larger than 64, Algorithm 1 of
@@ -6496,7 +6498,7 @@ L<Math::Prime::Util::GMP>.
   my $bigprime = random_safe_prime(512);
 
 Produces an n-bit safe prime.  This is a prime C<p> where C<p = 2q+1> and
-C<q> is also prime.
+C<q> is also prime.  The number of bits must be C<3> or greater.
 
 These types of primes are sometimes useful for discrete logarithm based
 cryptography, and can be generated more efficiently using
@@ -6507,8 +6509,9 @@ simultaneous sieving.
 
   my $bigprime = random_strong_prime(512);
 
-Constructs an n-bit strong prime using Gordon's algorithm.  We consider a
-strong prime I<p> to be one where
+Constructs an n-bit strong prime using Gordon's algorithm.  The number of
+bits must be C<128> or greater.  We consider a strong prime I<p> to be one
+where
 
 =over
 
@@ -6540,7 +6543,8 @@ with large bit sizes, install L<Math::Prime::Util::GMP>.
 
   my $bigprime = random_proven_prime(512);
 
-Constructs an n-bit random proven prime.  Internally this may use
+Constructs an n-bit random proven prime.  The number of bits must be C<2>
+or greater.  Internally this may use
 L</is_provable_prime>(L</random_nbit_prime>) or
 L</random_maurer_prime> depending on the platform and bit size.
 
@@ -6561,7 +6565,8 @@ any other software that understands MPU primality certificates.
   my $bigprime = random_maurer_prime(512);
 
 Construct an n-bit provable prime, using the FastPrime algorithm of
-Ueli Maurer (1995).  This is the same algorithm used by L<Crypt::Primes>.
+Ueli Maurer (1995).  The number of bits must be C<2> or greater.
+This is the same algorithm used by L<Crypt::Primes>.
 Similar to L</random_nbit_prime>, the result will be a BigInt if the
 number of bits is greater than the native bit size.
 
@@ -6598,11 +6603,12 @@ The proof construction consists of a single chain of C<BLS3> types.
   my $bigprime = random_shawe_taylor_prime(8192);
 
 Construct an n-bit provable prime, using the Shawe-Taylor algorithm in
-section C.6 of FIPS 186-4.  This uses 512 bits of randomness and SHA-256
-as the hash.  This is a slightly simpler and older (1986) method than
-Maurer's 1995 construction.  It is a bit faster than Maurer's method, and
-uses less system entropy for large sizes.  The primary reason to use this
-rather than Maurer's method is to use the FIPS 186-4 algorithm.
+section C.6 of FIPS 186-4.  The number of bits must be C<2> or greater.
+This uses 512 bits of randomness and SHA-256 as the hash.  This is a
+slightly simpler and older (1986) method than Maurer's 1995 construction.
+It is a bit faster than Maurer's method, and uses less system entropy for
+large sizes.  The primary reason to use this rather than Maurer's method is
+to use the FIPS 186-4 algorithm.
 
 Similar to L</random_nbit_prime>, the result will be a BigInt if the
 number of bits is greater than the native bit size.  For better performance
