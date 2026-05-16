@@ -6131,10 +6131,8 @@ void randperm(IN SV* svn, IN SV* svk = 0)
       k = n;
     if (k > (UV)IV_MAX)
       croak("randperm: k must fit in native signed integer");
-    if (GIMME_V != G_ARRAY)
-      RETURN_NPARITY(k);
-    if (k == 0)
-      XSRETURN_EMPTY;
+    if (GIMME_V != G_ARRAY) XSRETURN_IV(k);
+    if (k == 0)             XSRETURN_EMPTY;
     New(0, S, k, UV);
     randperm(MY_CXT.randcxt, n, k, S);
     EXTEND(SP, (EXTEND_TYPE)k);
@@ -6151,8 +6149,8 @@ void shuffle(...)
     void* randcxt;
     dMY_CXT;
   PPCODE:
-    if (items == 0)
-      XSRETURN_EMPTY;
+    if (GIMME_V != G_ARRAY) XSRETURN_IV(items);
+    if (items == 0)         XSRETURN_EMPTY;
     for (i = 0, randcxt = MY_CXT.randcxt; i < items-1; i++) {
       j = urandomm64(randcxt, items-i);
       { SV* t = ST(i); ST(i) = ST(i+j); ST(i+j) = t; }
@@ -6169,9 +6167,10 @@ void vecsample(IN SV* svk, ...)
   PPCODE:
     if (_validate_and_set(&k, aTHX_ svk, IFLAG_NONNEG) != 1)
       DISPATCHPP_RETURN();
-    if (items == 1 || k == 0)
-      XSRETURN_EMPTY;
-
+    if (items == 1 || k == 0) {
+      if (GIMME_V != G_ARRAY) XSRETURN_IV(0);
+      else                    XSRETURN_EMPTY;
+    }
     randcxt = MY_CXT.randcxt;
     /*
      * Fisher-Yates shuffle with first 'k' selections returned.
@@ -6193,6 +6192,8 @@ void vecsample(IN SV* svk, ...)
       nitems = items-1;
       if (k > nitems)
         k = nitems;
+      if (GIMME_V != G_ARRAY)
+        XSRETURN_IV(k);
       ST(0) = ST(items-1); /* Move last value to the first stack entry. */
       for (i = 0; i < k; i++) {
         uint32_t j = urandomm32(randcxt, nitems-i);
@@ -6202,10 +6203,14 @@ void vecsample(IN SV* svk, ...)
       DECL_ARREF(avp);
       USE_ARREF(avp, ST(1), SUBNAME, AR_READ);
       nitems = len_avp;
-      if (nitems == 0)
-        XSRETURN_EMPTY;
+      if (nitems == 0) {
+        if (GIMME_V != G_ARRAY) XSRETURN_IV(0);
+        else                    XSRETURN_EMPTY;
+      }
       if (k > nitems)
         k = nitems;
+      if (GIMME_V != G_ARRAY)
+        XSRETURN_IV(k);
       if (nitems < 65536) {
         uint16_t *I;
         New(0, I, nitems, uint16_t);

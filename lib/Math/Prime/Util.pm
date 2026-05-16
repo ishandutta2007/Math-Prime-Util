@@ -5864,7 +5864,7 @@ C<0> through C<n-1> and returning the first C<k> values, without
 needing to perform the full shuffle.
 
 In scalar context, returns the number of elements that would be returned,
-without actually generating the permutations.
+without actually generating the permutation.
 
 The slicing technique shown in the last two examples are similar to
 L</shuffle> and L</vecsample>.

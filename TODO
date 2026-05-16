@@ -644,9 +644,6 @@ OEIS lucky numbers:
 
 - redo t/32-iterators as subtests.
 
-- shuffle, vecsample should return count in scalar context
-  and should be documented.  We did this for vecslide, vecwindow, randperm.
-
 - more of the is_...prime PPFE functions should be aliased.
 
 - is_frobenius_pseudoprime, careful with P/Q using 0 to mean something.

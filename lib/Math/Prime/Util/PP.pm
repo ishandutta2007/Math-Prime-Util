@@ -12447,6 +12447,7 @@ sub randperm {
 
 sub shuffle {
   my @S=@_;
+  return scalar(@S) unless wantarray;
   # Note: almost all the time is spent in urandomm.
   for (my $i = $#S; $i >= 1; $i--) {
     my $j = Murandomm($i+1);
@@ -12461,6 +12462,8 @@ sub shuffle {
 # Includes an optimization for small k.
 sub _randperm_rotated_fy {
   my($len, $k) = @_;
+
+  return if $k <= 0;
 
   if ($k == 1) {
     my $j = Murandomm($len);
@@ -12493,12 +12496,14 @@ sub _randperm_rotated_fy {
 sub vecsample ($@) {   ## no critic qw(ProhibitSubroutinePrototypes)
   my $k = shift;
   validate_integer_nonneg($k);
-  return () if $k == 0 || @_ == 0;
+  return wantarray ? () : 0  if @_ == 0 || $k == 0;
 
   my $R = $_[0];
   my $isarr = @_ > 1 || !ref($R) || !_is_aref($R);
   my $len = $isarr  ?  scalar(@_)  :  scalar(@$R);
   $k = $len if $k > $len;
+  return $k unless wantarray;
+  return () if $k == 0;
 
   # Get the random permutation *exactly* as the XS selection is done.
   # With the same random stream these produce IDENTICAL outputs.
