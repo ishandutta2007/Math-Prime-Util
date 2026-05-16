@@ -331,6 +331,10 @@ sub _is_href {
   my $type = reftype($_[0]);
   defined($type) && $type eq 'HASH';
 }
+sub _is_cref {
+  my $type = reftype($_[0]);
+  defined($type) && $type eq 'CODE';
+}
 sub _is_sref {
   my $type = reftype($_[0]);
   # Return true if we can write a scalar in it, regardless of current contents.
@@ -3389,7 +3393,7 @@ sub divisor_sum {
   validate_integer_nonneg($n);
   return 0 if $n == 0;
 
-  if (defined $k && ref($k) eq 'CODE') {
+  if (_is_cref($k)) {
     my $sum = $n-$n;
     my $refn = ref($n);
     foreach my $d (Mdivisors($n)) {
@@ -12269,7 +12273,7 @@ sub forderange {
 
 sub forsetproduct {
   my($sub, @v) = @_;
-  croak 'Not a subroutine reference' unless (ref($sub) || '') eq 'CODE';
+  croak 'Not a subroutine reference' unless _is_cref($sub);
   croak 'Not an array reference' if grep { !_is_aref($_) } @v;
   # Exit if no arrays or any are empty.
   return if scalar(@v) == 0 || grep { !@$_ } @v;
@@ -12546,12 +12550,12 @@ sub vecsorti {
 
 sub setbinop (&$;$) {   ## no critic qw(ProhibitSubroutinePrototypes)
   my($sub, $ra, $rb) = @_;
-  croak 'Not a subroutine reference' unless (ref($sub) || '') eq 'CODE';
+  croak 'Not a subroutine reference' unless _is_cref($sub);
   croak 'Not an array reference' unless _is_aref($ra);
-  $ra = [@$ra];  # local copy
+  $ra = Mtoset(@$ra);  # local copy, validated, set-form
   if (defined $rb) {
     croak 'Not an array reference' unless _is_aref($rb);
-    $rb = [@$rb];  # local copy
+    $rb = Mtoset(@$rb);  # local copy, validated, set-form
   } else {
     $rb = $ra;
   }
@@ -12628,14 +12632,23 @@ sub vecsingleton {
 
 sub vecwindow (&$$@) {    ## no critic qw(ProhibitSubroutinePrototypes)
   my($sub, $step, $size) = (shift, shift, shift);
-  croak 'Not a subroutine reference' unless (ref($sub) || '') eq 'CODE';
+  croak 'Not a subroutine reference' unless _is_cref($sub);
   validate_integer_positive($step);
   validate_integer_positive($size);
-  my @result;
-  for (my $i = 0; $i + $size <= @_; $i += $step) {
-    push @result, $sub->(@_[$i .. $i+$size-1]);
+  if (!wantarray) {
+    my $count = 0;
+    for (my $i = 0; $i + $size <= @_; $i += $step) {
+      my @r = $sub->(@_[$i .. $i+$size-1]);
+      $count += scalar(@r);
+    }
+    return $count;
+  } else {
+    my @result;
+    for (my $i = 0; $i + $size <= @_; $i += $step) {
+      push @result, $sub->(@_[$i .. $i+$size-1]);
+    }
+    return @result;
   }
-  @result;
 }
 
 # SET/VEC generic.
