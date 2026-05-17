@@ -870,16 +870,17 @@ sub sieve_prime_cluster {
 
   return @{Mprimes($lo,$hi)} if scalar(@cl) == 0;
 
-  return maybetobigintall(
-             Math::Prime::Util::GMP::sieve_prime_cluster($lo,$hi,@cl)
-         ) if $Math::Prime::Util::_GMPfunc{"sieve_prime_cluster"};
-
-  unshift @cl, 0;
-  for my $i (1 .. $#cl) {
+  for my $i (0 .. $#cl) {
     validate_integer_nonneg($cl[$i]);
     croak "sieve_prime_cluster: values must be even" if $cl[$i] & 1;
-    croak "sieve_prime_cluster: values must be increasing" if $cl[$i] <= $cl[$i-1];
+    croak "sieve_prime_cluster: values must be increasing" if $i > 0 && $cl[$i] <= $cl[$i-1];
   }
+
+  return maybetobigintall(
+             Math::Prime::Util::GMP::sieve_prime_cluster($lo,$hi,@cl)
+         ) if $Math::Prime::Util::_GMPfunc{"sieve_prime_cluster"} && $cl[-1] <= 2147483647;
+
+  unshift @cl, 0;
   my($p,$sievelim,@p) = (17, 3000);
   if (defined $_BIGINT && (ref($lo) || ref($hi))) {
     ($lo,$hi) = map {tobigint($_)} ($lo,$hi) if ref($lo) ne $_BIGINT || ref($hi) ne $_BIGINT;
@@ -1170,6 +1171,7 @@ sub prev_prime_power {
 sub partitions {
   my($n) = @_;
   validate_integer_nonneg($n);
+  croak "partitions: n must fit in native signed integer" if $n > SINTMAX;
 
   my $d = Msqrtint(Madd1int($n));
   my @pent = (1, map { (($_*(3*$_+1))>>1, (($_+1)*(3*$_+2))>>1) } 1 .. $d);
@@ -1192,6 +1194,7 @@ sub partitions {
 sub partitionsq {
   my($n) = @_;
   validate_integer_nonneg($n);
+  croak "partitionsq: n must fit in native signed integer" if $n > SINTMAX;
   # n = 462 exceeds 2^49 intermediates
   my($ZERO,$ONE) = $n < 462  ?  (0,1)  :  (tobigint(0),tobigint(1));
   my @part = ($ONE);
@@ -8500,6 +8503,7 @@ sub factorialmod {
 sub subfactorial {
   my($n) = @_;
   validate_integer_nonneg($n);
+  croak "subfactorial: n must fit in native signed integer" if $n > SINTMAX;
   if ($n <= 3) { return ($n == 0) ? 1 : $n-1; }
   my $r = 0;
   for my $k (2..$n) {
@@ -8520,6 +8524,7 @@ sub catalan_number {
 sub bell_number {
   my($n) = @_;
   validate_integer_nonneg($n);
+  croak "bell_number: n must fit in native signed integer" if $n > SINTMAX;
   # Bell triangle: B(k) is the first element of row k.
   my @row = (1);
   @row = vecprefixsum($row[-1],@row)  for 1 .. $n;
@@ -8546,6 +8551,7 @@ sub _add_fubini {  # Add the next Fubini sequence term to an array reference.
 sub fubini {
   my($n) = @_;
   validate_integer_nonneg($n);
+  croak "fubini: n must fit in native signed integer" if $n > SINTMAX;
 
   my $cmax = $n < 500 ? $n : 500;
   _add_fubini($_fubinis) until defined $_fubinis->[$cmax];
@@ -12101,6 +12107,7 @@ sub forcomp {
 sub _forcompositions {
   my($ispart, $sub, $n, $rhash, $subname) = @_;
   validate_integer_nonneg($n);
+  croak "$subname: n must fit in native signed integer" if $n > SINTMAX;
   my($mina, $maxa, $minn, $maxn, $primeq) = (1,$n,1,$n,-1);
   if (defined $rhash) {
     croak "$subname second argument must be a hash reference"
