@@ -4124,8 +4124,8 @@ void almost_prime_count(IN SV* svk, IN SV* svn)
   PREINIT:
     UV k, n, ret;
   PPCODE:
-    if (_validate_and_set(&k, aTHX_ svk, IFLAG_ABS) &&
-        _validate_and_set(&n, aTHX_ svn, IFLAG_ABS) &&
+    if (_validate_and_set(&k, aTHX_ svk, IFLAG_NONNEG) &&
+        _validate_and_set(&n, aTHX_ svn, IFLAG_NONNEG) &&
         k < BITS_PER_WORD) {
       ret = 0;
       switch (ix) {
@@ -4148,8 +4148,8 @@ void nth_almost_prime(IN SV* svk, IN SV* svn)
   PREINIT:
     UV k, n, max;
   PPCODE:
-    if (_validate_and_set(&k, aTHX_ svk, IFLAG_ABS) &&
-        _validate_and_set(&n, aTHX_ svn, IFLAG_ABS) &&
+    if (_validate_and_set(&k, aTHX_ svk, IFLAG_NONNEG) &&
+        _validate_and_set(&n, aTHX_ svn, IFLAG_NONNEG) &&
         k < BITS_PER_WORD) {
       UV ret = 0;
       if (n == 0 || (k == 0 && n > 1)) XSRETURN_UNDEF;
@@ -4170,8 +4170,8 @@ void nth_omega_prime(IN SV* svk, IN SV* svn)
   PREINIT:
     UV k, n, max, ret;
   PPCODE:
-    if (_validate_and_set(&k, aTHX_ svk, IFLAG_ABS) &&
-        _validate_and_set(&n, aTHX_ svn, IFLAG_ABS) &&
+    if (_validate_and_set(&k, aTHX_ svk, IFLAG_NONNEG) &&
+        _validate_and_set(&n, aTHX_ svn, IFLAG_NONNEG) &&
         k < 16) {
       if (n == 0 || (k == 0 && n > 1)) XSRETURN_UNDEF;
       max = max_omega_prime_count(k);
