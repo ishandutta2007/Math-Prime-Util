@@ -2389,10 +2389,12 @@ sub powerfree_part_sum {
 
   return (($n >= 1) ? 1 : 0)  if $k < 2 || $n <= 1;
 
-  Mvecsum( _T($n),
-           map { Mmulint(_fprod($_,$k), _T(Mdivint($n, Mpowint($_, $k)))) }
-              2 .. Mrootint($n,$k)
-         );
+  my @A = (_T($n));
+  for my $i (2 .. Mrootint($n,$k)) {
+    push @A, Mmulint(_fprod($i,$k), _T(Mdivint($n, Mpowint($i, $k))));
+    @A = (Mvecsum(@A)) if @A >= 16384;
+  }
+  Mvecsum(@A);
 }
 
 sub squarefree_kernel {
@@ -2983,7 +2985,7 @@ sub is_delicate_prime {
   validate_integer_nonneg($n);
   if (defined $b) {
     validate_integer_nonneg($b);
-    croak "is_delicate_prime base must be >= 2" if $b < 2;
+    croak "is_delicate_prime: invalid base: $b" if $b < 2 || $b > SINTMAX;
   } else {
     $b = 10;
   }
